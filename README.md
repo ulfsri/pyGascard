@@ -14,6 +14,9 @@
 ![Coverage Report](assets/images/coverage.svg)
 
 Python API for acquisition and control of Edinburgh Sensors Gascard
+
+See [Edinburgh Sensors Gascard Communications Guide](https://edinburghsensors.com/?file=3279) for reference.
+
 </div>
 
 ## Very first steps
