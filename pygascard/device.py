@@ -127,7 +127,7 @@ class Gascard(ABC):
         self._df_format = None
         self._df_units = None
 
-    async def get(self) -> str:
+    async def get_val(self) -> dict:
         """
         Gets the current value of the device.
         """ 
@@ -418,3 +418,16 @@ class Gascard(ABC):
         self._df_format = df_format
         self._df_ret = df_ret
         return [df_stand, df_stand_ret]
+
+
+    async def get(self):
+        """
+        General function to receive from device.
+        """
+        return
+    
+    async def set(self):
+        """
+        General function to send to device.
+        """
+        return 
