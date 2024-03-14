@@ -77,31 +77,31 @@ U_labels = [
 ]
 
 commands = {
-    "val" : "N",
-    "coeff" : "C",
-    "environmental" : "E",
-    "zero temp corr" : "Ez",
-    "span temp corr" : "Es",
-    "1st order coeff" : "Eg",
-    "2nd order coeff" : "Ee",
-    "3rd order coeff" : "Ed",
-    "4th order coeff" : "Ec",
-    "slope corr" : "Em",
-    "offset corr" : "Ex",
-    "output" : "O",
-    "pwm volt slope" : "Om",
-    "pwm volt offset" : "Ox",
-    "pwm current slope" : "Oa",
-    "pwm current offset" : "Ob",
-    "volt output range" : "Ov",
-    "settings" : "X",
-    "lamp freq" : "Xf",
-    "rc time const" : "Xt",
-    "reset all" : "Xd",
-    "soft reset" : "Xq",
-    "user interface" : "U",
-    "display selection" : "Ud",
-    "test leds" : "Ut",
+    "val": "N",
+    "coeff": "C",
+    "environmental": "E",
+    "zero temp corr": "Ez",
+    "span temp corr": "Es",
+    "1st order coeff": "Eg",
+    "2nd order coeff": "Ee",
+    "3rd order coeff": "Ed",
+    "4th order coeff": "Ec",
+    "slope corr": "Em",
+    "offset corr": "Ex",
+    "output": "O",
+    "pwm volt slope": "Om",
+    "pwm volt offset": "Ox",
+    "pwm current slope": "Oa",
+    "pwm current offset": "Ob",
+    "volt output range": "Ov",
+    "settings": "X",
+    "lamp freq": "Xf",
+    "rc time const": "Xt",
+    "reset all": "Xd",
+    "soft reset": "Xq",
+    "user interface": "U",
+    "display selection": "Ud",
+    "test leds": "Ut",
 }
 
 '''
@@ -233,7 +233,7 @@ class Gascard(ABC):
             self.calibrate()
         return
 
-    async def environmental(self, com = "", opt = 'n') -> str:
+    async def environmental(self, com="", opt="n") -> str:
         """
         Display and Change Environmental Parameters
         """
@@ -297,7 +297,7 @@ class Gascard(ABC):
             zip(self._df_format, df)
         )  # Combine the format and the values into a dictionary
 
-    async def output(self, com = "", opt = 'n') -> str:
+    async def output(self, com="", opt="n") -> str:
         """
         Display and Change Environmental Parameters
         """
@@ -349,7 +349,7 @@ class Gascard(ABC):
             zip(self._df_format, df)
         )  # Combine the format and the values into a dictionary
 
-    async def settings(self, com = "", opt = 'n') -> dict:
+    async def settings(self, com="", opt="n") -> dict:
         """
         Display and Change Settings
         """
@@ -373,7 +373,7 @@ class Gascard(ABC):
             #     "Enter calibration command (f<val> = lamp freq [Hz] (1 to 9), t<val> = RC time const, d = reset all sensor variables, q = Soft reset): "
             # )
             if com[0].upper() == "F":
-                opt = 'y' #input(
+                opt = "y"  # input(
                 #     "WARNING: Changing the frequency will change the calibration coefficients. Would you like to continue? (y/n): "
                 # )
                 if opt.upper() == "Y":
@@ -393,7 +393,7 @@ class Gascard(ABC):
             elif com[0].upper() == "T":
                 ret = await self._device._write_readline("t" + com[1:])
             elif com[0].upper() == "D":
-                opt = 'y' # input(
+                opt = "y"  # input(
                 #     "WARNING: This will reset all sensor variables. This will render the sensor useless until re-setup. Would you like to continue? (y/n): "
                 # )
                 if opt.upper() == "Y":
@@ -422,7 +422,7 @@ class Gascard(ABC):
             zip(self._df_format, df)
         )  # Combine the format and the values into a dictionary
 
-    async def userinterface(self, com = "", opt = 'n') -> str:
+    async def userinterface(self, com="", opt="n") -> str:
         """
         View user Interface
         """
@@ -480,7 +480,9 @@ class Gascard(ABC):
             self._id + "??D*"
         )  # Call the command to read the device (id + ??D*)
         splits = []
-        for match in re.finditer(  # Breaks first line of output into iterable of match objects for each whitespace
+        for (
+            match
+        ) in re.finditer(  # Breaks first line of output into iterable of match objects for each whitespace
             r"\s", resp[0]
         ):
             splits.append(
@@ -514,21 +516,21 @@ class Gascard(ABC):
         except:
             print("Invalid command")
             return
-        if comm[0].upper() == 'N':
+        if comm[0].upper() == "N":
             return await self.get_val()
-        elif comm[0].upper() == 'C':
+        elif comm[0].upper() == "C":
             return await self.get_coeff()
-        elif comm[0].upper() == 'E':
+        elif comm[0].upper() == "E":
             return await self.environmental()
-        elif comm[0].upper() == 'O':
+        elif comm[0].upper() == "O":
             return await self.output()
-        elif comm[0].upper() == 'X':
+        elif comm[0].upper() == "X":
             return await self.settings()
-        elif comm[0].upper() == 'U':
+        elif comm[0].upper() == "U":
             return await self.userinterface()
         return
 
-    async def set(self, command: str, val = 0) -> dict:
+    async def set(self, command: str, val=0) -> dict:
         """
         General function to send to device.
         """
@@ -539,34 +541,34 @@ class Gascard(ABC):
         except:
             print("Invalid command")
             return
-        if command[0].upper() == 'E':
-            return await self.environmental(command[1:] + str(val), opt = 'y')
-        elif command[0].upper() == 'O':
-            return await self.output(command[1:] + str(val), opt = 'y')
-        elif command[0].upper() == 'X':
-            return await self.settings(command[1:] + str(val), opt = 'y')
-        elif command[0].upper() == 'U':
-            return await self.userinterface(command[1:] + str(val), opt = 'y')
+        if command[0].upper() == "E":
+            return await self.environmental(command[1:] + str(val), opt="y")
+        elif command[0].upper() == "O":
+            return await self.output(command[1:] + str(val), opt="y")
+        elif command[0].upper() == "X":
+            return await self.settings(command[1:] + str(val), opt="y")
+        elif command[0].upper() == "U":
+            return await self.userinterface(command[1:] + str(val), opt="y")
         return
-    
+
     async def zero(self):
         """
         General function to zero the device.
-        
+
         Device MUST be flowing zero gas BEFORE calling this function.
         """
         await self.calibrate("z")
         return
-    
+
     async def span(self, val):
         """
         General function to span the device.
-        
+
         Device MUST be flowing span gas BEFORE calling this function. Span value must be between 0.5 and 1.20
         """
         await self.calibrate("s" + val)
         return
-    
+
     async def coefficients(self, hval, ival, jval, kval):
         """
         Set the calibration coefficients.
