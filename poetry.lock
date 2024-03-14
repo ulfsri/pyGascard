@@ -1258,17 +1258,17 @@ files = [
 
 [[package]]
 name = "pyqtgraph"
-version = "0.13.3"
+version = "0.13.4"
 description = "Scientific Graphics and GUI Library for Python"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "pyqtgraph-0.13.3-py3-none-any.whl", hash = "sha256:fdcc04ac4b32a7bedf1bf3cf74cbb93ab3ba5687791712bbfa8d0712377d2f2b"},
-    {file = "pyqtgraph-0.13.3.tar.gz", hash = "sha256:58108d8411c7054e0841d8b791ee85e101fc296b9b359c0e01dde38a98ff2ace"},
+    {file = "pyqtgraph-0.13.4-py3-none-any.whl", hash = "sha256:1dc9a786aa43cd787114366058dc3b4b8cb96a0e318f334720c7e6cc6c285940"},
+    {file = "pyqtgraph-0.13.4.tar.gz", hash = "sha256:67b0d371405c4fd5f35afecfeb37d4b73bc118f187c52a965ed68d62f59b67b3"},
 ]
 
 [package.dependencies]
-numpy = ">=1.20.0"
+numpy = ">=1.22.0"
 
 [[package]]
 name = "pyserial"
@@ -1894,4 +1894,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "bdd73c0f036a4494411198a071652ef9d4ee43538fae376a131ccec7d3a649c0"
+content-hash = "4c000425c3d8a92919a39901d7db969fa854210bec317dc9683c94c64f85ce95"
