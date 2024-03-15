@@ -133,7 +133,7 @@ async def new_device(port: str, id: str = "A", **kwargs: Any):
     dev_info_raw = dev_info_raw.replace("\x00", "")
     dev_info = dict(zip(U_labels, dev_info_raw.split()))
     # If the sensor does not output a user interface mode line
-    while (not "U" in dev_info_raw.split()[0]):  
+    while not "U" in dev_info_raw.split()[0]:
         print("Error: Gas Card Not in User Interface Mode")
         dev_info_raw = await device._write_readline("U")
         dev_info_raw = dev_info_raw.replace("\x00", "")
@@ -164,7 +164,7 @@ class Gascard(ABC):
         # If the format isn't established...
         if self._df_format != N_labels:
             # ...Create the format
-            self._df_format = N_labels.copy()  
+            self._df_format = N_labels.copy()
         # Read the line
         ret = await self._device._write_readline("N")
         # Removes the hex indicators
@@ -172,7 +172,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a normal mode line
-        while not "N" in df[0]:  
+        while not "N" in df[0]:
             print("Error: Gas Card Not in Normal Mode")
             # Repeat the above
             ret = await self._device._write_readline("N")
@@ -201,10 +201,10 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a coefficient mode line
-        while not "C" in df[0]:  
+        while not "C" in df[0]:
             print("Error: Gas Card Not in Coefficient Mode")
             # Repeat the above
-            ret = await self._device._write_readline("C1") 
+            ret = await self._device._write_readline("C1")
             ret = ret.replace("\x00", "")
             df = ret.split()
         # Convert numbers in the list into floats
@@ -256,16 +256,16 @@ class Gascard(ABC):
         WARNING Changing any environmental paramter will lead to incorrect gas sensor operation
         """
         # If the format isn't established...
-        if self._df_format != E1_labels:  
+        if self._df_format != E1_labels:
             # ...Create the format
-            self._df_format = E1_labels.copy()  
+            self._df_format = E1_labels.copy()
         # Read the line
         ret = await self._device._write_readline("E1")
         ret = ret.replace("\x00", "")
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output an environmental mode line
-        while (not "E" in df[0]):  
+        while not "E" in df[0]:
             print("Error: Gas Card Not in Environmental Mode")
             # Repeat the above
             ret = await self._device._write_readline("E1")
@@ -277,21 +277,21 @@ class Gascard(ABC):
                 df[index] = float(df[index])
         # Opt allows user to change parameters
         if opt.upper() == "Y":
-            if com[0].upper() == "Z": # Zero temp corr
+            if com[0].upper() == "Z":  # Zero temp corr
                 ret = await self._device._write_readline("z" + com[1:])
-            elif com[0].upper() == "S": # Span temp corr
+            elif com[0].upper() == "S":  # Span temp corr
                 ret = await self._device._write_readline("s" + com[1:])
-            elif com[0].upper() == "c": # 4th order coeff
+            elif com[0].upper() == "c":  # 4th order coeff
                 ret = await self._device._write_readline("c" + com[1:])
-            elif com[0].upper() == "D": # 3rd order coeff
+            elif com[0].upper() == "D":  # 3rd order coeff
                 ret = await self._device._write_readline("d" + com[1:])
-            elif com[0].upper() == "E": # 2nd order coeff
+            elif com[0].upper() == "E":  # 2nd order coeff
                 ret = await self._device._write_readline("e" + com[1:])
-            elif com[0].upper() == "G": # 1st order coeff
+            elif com[0].upper() == "G":  # 1st order coeff
                 ret = await self._device._write_readline("g" + com[1:])
-            elif com[0].upper() == "M": # Slope corr
+            elif com[0].upper() == "M":  # Slope corr
                 ret = await self._device._write_readline("m" + com[1:])
-            elif com[0].upper() == "X": # Offset corr
+            elif com[0].upper() == "X":  # Offset corr
                 ret = await self._device._write_readline("x" + com[1:])
             else:
                 print("Invalid command")
@@ -303,7 +303,7 @@ class Gascard(ABC):
             # Create a list of every word in the line
             df = ret.split()
             # If the sensor does not output an environmental mode line
-            while (not "E" in df[0]):
+            while not "E" in df[0]:
                 print("Error: Gas Card Not in Environmental Mode")
                 # Repeat the above
                 ret = await self._device._write_readline("E1")
@@ -384,7 +384,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a settings mode line
-        while not "X" in df[0]:  
+        while not "X" in df[0]:
             print("Error: Gas Card Not in Settings Mode")
             # Repeat the above
             ret = await self._device._write_readline("X")
@@ -396,9 +396,9 @@ class Gascard(ABC):
                 df[index] = float(df[index])
         # opt lets user change settings
         if opt.upper() == "Y":
-            if com[0].upper() == "F": # Lamp freq
+            if com[0].upper() == "F":  # Lamp freq
                 opt = "y"  # WARNING: Changing the frequency will change the calibration coefficients.
-                if opt.upper() == "Y": # CLEAN THIS UP IAN, RELIC FROM INPUT
+                if opt.upper() == "Y":  # CLEAN THIS UP IAN, RELIC FROM INPUT
                     while float(com[1:]) < 1 or float(com[1:]) > 9:
                         print("Error: Frequency must be between 1 and 9")
                         return
@@ -409,31 +409,31 @@ class Gascard(ABC):
                     ret = await self._device._write_readline("f" + com[1:])
                 else:
                     return dict(zip(self._df_format, df))
-            elif com[0].upper() == "T": # RC time const
+            elif com[0].upper() == "T":  # RC time const
                 ret = await self._device._write_readline("t" + com[1:])
-            elif com[0].upper() == "D": # Reset all sensor variables
+            elif com[0].upper() == "D":  # Reset all sensor variables
                 opt = "y"  # WARNING: This will reset all sensor variables. This will render the sensor useless until re-setup.
-                if opt.upper() == "Y": # THIS ONE TOO
+                if opt.upper() == "Y":  # THIS ONE TOO
                     ret = await self._device._write_readline("d")
-            elif com[0].upper() == "Q": # Soft reset
+            elif com[0].upper() == "Q":  # Soft reset
                 ret = await self._device._write_readline("q" + com[1:])
             else:
                 print("Invalid command")
             # Get the new dictionary, this should be cleaned up no point in repeating code like this
-            ret = await self._device._write_readline("X") 
+            ret = await self._device._write_readline("X")
             ret = ret.replace("\x00", "")
             df = ret.split()
-            while (not "X" in df[0]):
+            while not "X" in df[0]:
                 print("Error: Gas Card Not in settings Mode")
                 ret = await self._device._write_readline("X")
                 ret = ret.replace("\x00", "")
                 df = ret.split()
-              # Convert numbers in the list into floats
+            # Convert numbers in the list into floats
             for index in range(len(df)):
                 if df[index].isnumeric():
                     df[index] = float(df[index])
         # Combine the format and the values into a dictionary
-        return dict(zip(self._df_format, df))  
+        return dict(zip(self._df_format, df))
 
     async def userinterface(self, com="", opt="n") -> str:
         """
@@ -445,7 +445,7 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()  # Create a list of every word in the line
         # If the sensor does not output a user interface mode line
-        while (not "U" in df[0]):
+        while not "U" in df[0]:
             print("Error: Gas Card Not in User Interface Mode")
             ret = await self._device._write_readline("U")
             ret = ret.replace("\x00", "")
@@ -453,12 +453,12 @@ class Gascard(ABC):
         # Convert numbers in the list into floats
         for index in range(len(df)):
             if df[index].isnumeric():
-                df[index] = float(df[index])  
+                df[index] = float(df[index])
         # opt lets user to display or test
         if opt.upper() == "Y":
-            if com[0].upper() == "D": # Display selection
+            if com[0].upper() == "D":  # Display selection
                 ret = await self._device._write_readline("d" + com[1:])
-            elif com[0].upper() == "T": # Test LEDs and display
+            elif com[0].upper() == "T":  # Test LEDs and display
                 ret = await self._device._write_readline("t" + com[1:])
             else:
                 print("Invalid command")
@@ -466,8 +466,8 @@ class Gascard(ABC):
             ret = await self._device._write_readline("X")  # Read the line
             ret = ret.replace("\x00", "")
             df = ret.split()  # Create a list of every word in the line
-              # If the sensor does not output an settings mode line
-            while (not "X" in df[0]):
+            # If the sensor does not output an settings mode line
+            while not "X" in df[0]:
                 print("Error: Gas Card Not in settings Mode")
                 ret = await self._device._write_readline("X")
                 ret = ret.replace("\x00", "")
@@ -477,7 +477,7 @@ class Gascard(ABC):
                 if df[index].isnumeric():
                     df[index] = float(df[index])
         # Combine the format and the values into a dictionary
-        return dict(zip(self._df_format, df))  
+        return dict(zip(self._df_format, df))
 
     async def get_df_format(self) -> str:
         """
@@ -487,7 +487,7 @@ class Gascard(ABC):
         resp = await self._device._write_readall(self._id + "??D*")
         splits = []
         # Breaks first line of output into iterable of match objects for each whitespace
-        for (match) in re.finditer(r"\s", resp[0]):
+        for match in re.finditer(r"\s", resp[0]):
             # Adds the start index/position of each match object to the list splits
             splits.append(match.start())
         df_table = [
