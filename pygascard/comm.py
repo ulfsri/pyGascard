@@ -142,7 +142,9 @@ class SerialDevice(CommDevice):
         ByteString
             The serial communication.
         """
-        return await self.ser_devc.receive_some(len)
+        with trio.move_on_after(self.timeout / 1000):
+            return await self.ser_devc.receive_some(len)
+        return None
 
     async def _write(self, command: str) -> None:
         """
@@ -168,11 +170,14 @@ class SerialDevice(CommDevice):
         async with self.ser_devc:
             line = bytearray()
             while True:
+                c = None
                 with trio.move_on_after(self.timeout / 1000):
                     c = await self._read(1)
                     line += c
                     if c == self.eol:
                         break
+                if c is None:
+                    break
         return line.decode("ascii")
 
     async def _write_readall(self, command: str) -> list:
@@ -216,12 +221,15 @@ class SerialDevice(CommDevice):
             await self._write(command)
             line = bytearray()
             while True:
+                c = None
                 with trio.move_on_after(self.timeout / 1000):
                     c = await self._read(1)
                     if c == self.eol:
                         break
                     line += c
-            return line.decode("ascii")
+                if c is None:
+                    break
+        return line.decode("ascii")
 
     async def _flush(self) -> None:
         """
