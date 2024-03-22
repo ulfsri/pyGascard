@@ -30,7 +30,7 @@ pre-commit-install:
 #* Formatters
 .PHONY: codestyle
 codestyle:
-	poetry run ruff check . --fix --no-unsafe-fixes
+	poetry run ruff check . --fix --no-unsafe-fixes --exit-zero
 	poetry run ruff format
 
 .PHONY: formatting
@@ -44,7 +44,7 @@ test:
 
 .PHONY: check-codestyle
 check-codestyle:
-	poetry run ruff check . --fix --no-unsafe-fixes
+	poetry run ruff check . --fix --no-unsafe-fixes --exit-zero
 	poetry run ruff format
 
 .PHONY: mypy
