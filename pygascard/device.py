@@ -1,11 +1,9 @@
-from typing import Any, Union
+from typing import Any
 
 import re
 from abc import ABC
 
-import trio
-from comm import CommDevice, SerialDevice
-from trio import run
+from comm import SerialDevice
 
 N_labels = [
     # Lists the outputs of the sensor in normal mode in order
@@ -133,7 +131,7 @@ async def new_device(port: str, id: str = "A", **kwargs: Any):
     dev_info_raw = dev_info_raw.replace("\x00", "")
     dev_info = dict(zip(U_labels, dev_info_raw.split()))
     # If the sensor does not output a user interface mode line
-    while not "U" in dev_info_raw.split()[0]:
+    while "U" not in dev_info_raw.split()[0]:
         print("Error: Gas Card Not in User Interface Mode")
         dev_info_raw = await device._write_readline("U")
         dev_info_raw = dev_info_raw.replace("\x00", "")
@@ -172,7 +170,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a normal mode line
-        while not "N" in df[0]:
+        while "N" not in df[0]:
             print("Error: Gas Card Not in Normal Mode")
             # Repeat the above
             ret = await self._device._write_readline("N")
@@ -201,7 +199,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a coefficient mode line
-        while not "C" in df[0]:
+        while "C" not in df[0]:
             print("Error: Gas Card Not in Coefficient Mode")
             # Repeat the above
             ret = await self._device._write_readline("C1")
@@ -265,7 +263,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output an environmental mode line
-        while not "E" in df[0]:
+        while "E" not in df[0]:
             print("Error: Gas Card Not in Environmental Mode")
             # Repeat the above
             ret = await self._device._write_readline("E1")
@@ -303,7 +301,7 @@ class Gascard(ABC):
             # Create a list of every word in the line
             df = ret.split()
             # If the sensor does not output an environmental mode line
-            while not "E" in df[0]:
+            while "E" not in df[0]:
                 print("Error: Gas Card Not in Environmental Mode")
                 # Repeat the above
                 ret = await self._device._write_readline("E1")
@@ -325,7 +323,7 @@ class Gascard(ABC):
         ret = await self._device._write_readline("O1")  # Read the line
         ret = ret.replace("\x00", "")
         df = ret.split()  # Create a list of every word in the line
-        while not "O" in df[0]:  # If the sensor does not output an output mode line
+        while "O" not in df[0]:  # If the sensor does not output an output mode line
             print("Error: Gas Card Not in Output Mode")
             ret = await self._device._write_readline("O1")  # Read the line again
             ret = ret.replace("\x00", "")  # Removes '\x00' characters
@@ -354,7 +352,7 @@ class Gascard(ABC):
             ret = await self._device._write_readline("O1")  # Read the line
             ret = ret.replace("\x00", "")
             df = ret.split()  # Create a list of every word in the line
-            while not "O" in df[0]:  # If the sensor does not output an output mode line
+            while "O" not in df[0]:  # If the sensor does not output an output mode line
                 print("Error: Gas Card Not in output Mode")
                 ret = await self._device._write_readline("E1")  # Read the line again
                 ret = ret.replace("\x00", "")  # Removes '\x00' characters
@@ -384,7 +382,7 @@ class Gascard(ABC):
         # Create a list of every word in the line
         df = ret.split()
         # If the sensor does not output a settings mode line
-        while not "X" in df[0]:
+        while "X" not in df[0]:
             print("Error: Gas Card Not in Settings Mode")
             # Repeat the above
             ret = await self._device._write_readline("X")
@@ -423,7 +421,7 @@ class Gascard(ABC):
             ret = await self._device._write_readline("X")
             ret = ret.replace("\x00", "")
             df = ret.split()
-            while not "X" in df[0]:
+            while "X" not in df[0]:
                 print("Error: Gas Card Not in settings Mode")
                 ret = await self._device._write_readline("X")
                 ret = ret.replace("\x00", "")
@@ -445,7 +443,7 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()  # Create a list of every word in the line
         # If the sensor does not output a user interface mode line
-        while not "U" in df[0]:
+        while "U" not in df[0]:
             print("Error: Gas Card Not in User Interface Mode")
             ret = await self._device._write_readline("U")
             ret = ret.replace("\x00", "")
@@ -467,7 +465,7 @@ class Gascard(ABC):
             ret = ret.replace("\x00", "")
             df = ret.split()  # Create a list of every word in the line
             # If the sensor does not output an settings mode line
-            while not "X" in df[0]:
+            while "X" not in df[0]:
                 print("Error: Gas Card Not in settings Mode")
                 ret = await self._device._write_readline("X")
                 ret = ret.replace("\x00", "")
