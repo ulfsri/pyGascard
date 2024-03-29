@@ -509,11 +509,11 @@ class Gascard(ABC):
         """
         General function to receive from device.
         """
-        if type(comm) != str:
+        if not isinstance(comm, str):
             comm = str(comm)
         try:
             comm = commands[comm.lower()]
-        except:
+        except KeyError:
             print("Invalid command")
             return
         if comm[0].upper() == "N":
@@ -534,11 +534,11 @@ class Gascard(ABC):
         """
         General function to send to device.
         """
-        if type(command) != str:
+        if not isinstance(command, str):
             command = str(command)
         try:
             command = commands[command.lower()]
-        except:
+        except KeyError:
             print("Invalid command")
             return
         if command[0].upper() == "E":
