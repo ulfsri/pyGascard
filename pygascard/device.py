@@ -15,9 +15,19 @@ N_labels = [
     "Conc 3",
     "Conc 4",
     "Conc 5",
-    "Current Temperature",
-    "Current Pressure",
-    "Current Humidity",
+    "Temperature",
+    "Pressure",
+    "Humidity",
+]
+N1_labels = [
+    # Lists the outputs of the sensor in normal mode in order
+    "Mode",
+    "Sample Channel",
+    "Reference Channel",
+    "Voltage PWM Value",
+    "Conc",
+    "Sensor Temperature",
+    "Sensor Pressure",
 ]
 C1_labels = [
     # Lists the outputs of the sensor in coefficient mode in order
@@ -38,23 +48,23 @@ E1_labels = [
     "Mode",
     "Zero Cal. Temp.",
     "Span Cal. Temp.",
-    "Pressure Sensor Slope Cor. (m)",
-    "Pressure Sensor Offset Cor. (x)",
-    "Press 4th Coeff (c)",
-    "Press 3rd Coeff (d)",
-    "Press 2nd Coeff (e)",
-    "Press 1st Coeff (g)",
-    "Zero Temp Correction Value (z)",
-    "Span Temp Correction Value (s)",
+    "Pressure Sensor Slope Cor.",
+    "Pressure Sensor Offset Cor.",
+    "Press 4th Coeff",
+    "Press 3rd Coeff",
+    "Press 2nd Coeff",
+    "Press 1st Coeff",
+    "Zero Temp Correction Value",
+    "Span Temp Correction Value",
 ]
 O1_labels = [
     # Lists the outputs of the sensor in output mode in order
     "Mode",
-    "PWM Voltage Output Slope Corr (m)",
-    "PWM Voltage Output Offset Corr (c)",
+    "PWM Voltage Output Slope Corr",
+    "PWM Voltage Output Offset Corr",
     "PWM Voltage Value",
-    "PWM Current Output Slope Corr (a)",
-    "PWM Current Output Offset Corr (b)",
+    "PWM Current Output Slope Corr",
+    "PWM Current Output Offset Corr",
     "PWM Current Value",
 ]
 X_labels = [
@@ -63,8 +73,8 @@ X_labels = [
     "Firmware Version",
     "Serial Number",
     "Config Register",
-    "Frequency (f)",
-    "Time Constant (t)",
+    "Frequency",
+    "Time Constant",
     "Switches State",
 ]
 U_labels = [
@@ -104,23 +114,15 @@ commands = {
     "test leds": "Ut",
 }
 
-# This function is not necessary, but would've resulted in more visual appealling responses
-'''
-def clean_mode(word_list) -> list:
-    """
-    Function removes duplicate characters in 'mode' item
-    Returns:
-        list: parameter with duplicates removed from 1st item
-    """
-    cleaned_list = word_list.copy()
-    print(cleaned_list[0])
-    if len(cleaned_list[0]) > 1:
-        for i in range(len(cleaned_list[0])):
-             if cleaned_list[0].count(cleaned_list[0][i]) > 1:
-                 cleaned_list[0].replace(cleaned_list[0][i], " ")
-    cleaned_list[0] = cleaned_list[0].replace(" ","")
-    return str(cleaned_list)
-'''
+values = {  # Name of variable : [Mode, Command to change]
+    "N": [N_labels, ["", "", "", "", "", "", "", "", ""]],
+    "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
+    "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
+    "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
+    "O1": [O1_labels, ["", "m", "c", "", "a", "b", ""]],
+    "X": [X_labels, ["", "", "", "", "f", "t", ""]],
+    "U": [U_labels, ["", "", "", "", "d"]],
+}
 
 
 async def new_device(port: str, **kwargs: Any):
@@ -155,44 +157,94 @@ class Gascard(ABC):
         self._device = device
         self._dev_info = dev_info
         self._df_format = None
+        self._current_mode = "U"
+        self._modes = [
+            "N",
+            "N1",
+            "C",
+            "C1",
+            "E1",
+            "O1",
+            "D",
+            "X",
+            "U",
+        ]  # What is mode C?
+
+        self.N_labels = N_labels
+        self.N1_labels = N1_labels
+        self.C1_labels = C1_labels
+        self.E1_labels = E1_labels
+        self.O1_labels = O1_labels
+        self.X_labels = X_labels
+        self.U_labels = U_labels
+        self.values = values
+
+    async def get_mode(self) -> str:
+        """Gets the current mode of the device."""
+        ret = await self._device._readline()
+        mode = ret[0:2].strip()
+        if mode in self._modes:
+            self.current_mode = mode
+        else:
+            print("Error: Invalid Mode")
+        return mode
+
+    async def set_mode(self, mode: str) -> None:
+        """Sets the mode of the device."""
+        if mode in self._modes:
+            await self._device._write(mode)
+            self._current_mode = mode
+        else:
+            print("Error: Invalid Mode")
+        return
 
     async def get_val(self) -> dict:
         """Gets the current value of the device."""
-        if self._df_format != N_labels:
-            self._df_format = N_labels.copy()
-        ret = await self._device._write_readline("N")
+        if self._current_mode != "N":
+            await self.set_mode("N")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        while "N" not in df[0]:
+        if "N" not in df[0]:
             print("Error: Gas Card Not in Normal Mode")
-            ret = await self._device._write_readline("N")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.N_labels, df))
+
+    async def get_raw(self) -> dict:
+        """Gets the raw sensor output."""
+        if self._current_mode != "N1":
+            await self.set_mode("N1")
+        ret = await self._device._readline()
+        ret = ret.replace("\x00", "")
+        df = ret.split()
+        if "N1" not in df[0]:
+            print("Error: Gas Card Not in Normal Mode")
+        for index in range(len(df)):
+            try:
+                df[index] = float(df[index])
+            except ValueError:
+                pass
+        return dict(zip(self.N1_labels, df))
 
     async def get_coeff(self) -> dict:
         """Gets the current value of the device."""
-        if self._df_format != C1_labels:
-            self._df_format = C1_labels.copy()
-        ret = await self._device._write_readline("C1")
+        if self._current_mode != "C1":
+            await self.set_mode("C1")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        while "C" not in df[0]:
+        if "C" not in df[0]:
             print("Error: Gas Card Not in Coefficient Mode")
-            ret = await self._device._write_readline("C1")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.C1_labels, df))
 
     # There must be some way to let the user know which commands are vlid
 
@@ -236,16 +288,13 @@ class Gascard(ABC):
         opt = to enable optional parts of the command
         WARNING Changing any environmental parameter will lead to incorrect gas sensor operation
         """
-        if self._df_format != E1_labels:
-            self._df_format = E1_labels.copy()
-        ret = await self._device._write_readline("E1")
+        if self._current_mode != "E1":
+            await self.set_mode("E1")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        while "E" not in df[0]:
+        if "E" not in df[0]:
             print("Error: Gas Card Not in Environmental Mode")
-            ret = await self._device._write_readline("E1")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -270,20 +319,17 @@ class Gascard(ABC):
                         pass
             else:
                 print("Invalid command")
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.E1_labels, df))
 
     async def output(self, com="", opt="n") -> str:
-        """Display and Change Environmental Parameters."""
-        if self._df_format != O1_labels:
-            self._df_format = O1_labels.copy()
-        ret = await self._device._write_readline("O1")
+        """Display and Change output variables."""
+        if self._current_mode != "O1":
+            await self.set_mode("O1")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        while "O" not in df[0]:
+        if "O" not in df[0]:
             print("Error: Gas Card Not in Output Mode")
-            ret = await self._device._write_readline("O1")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -308,20 +354,17 @@ class Gascard(ABC):
                         pass
             else:
                 print("Invalid command")
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.O1_labels, df))
 
     async def settings(self, com="", opt="n") -> dict:
         """Display and Change Settings."""
-        if self._df_format != X_labels:
-            self._df_format = X_labels.copy()
-        ret = await self._device._write_readline("X")
+        if self._current_mode != "X":
+            await self.set_mode("X")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        while "X" not in df[0]:
+        if "X" not in df[0]:
             print("Error: Gas Card Not in Settings Mode")
-            ret = await self._device._write_readline("X")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -363,22 +406,17 @@ class Gascard(ABC):
                     df[index] = float(df[index])
                 except ValueError:
                     pass
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.X_labels, df))
 
     async def userinterface(self, com="", opt="n") -> str:
         """View user Interface."""
-        if self._df_format != U_labels:
-            self._df_format = U_labels.copy()  # Create the format
-        ret = await self._device._write_readline("U")  # Read the line
+        if self._current_mode != "U":
+            await self.set_mode("U")
+        ret = await self._device._readline()
         ret = ret.replace("\x00", "")
-        df = ret.split()  # Create a list of every word in the line
-        # If the sensor does not output a user interface mode line
-        while "U" not in df[0]:
+        df = ret.split()
+        if "U" not in df[0]:
             print("Error: Gas Card Not in User Interface Mode")
-            ret = await self._device._write_readline("U")
-            ret = ret.replace("\x00", "")
-            df = ret.split()
-        # Convert numbers in the list into floats
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -409,48 +447,55 @@ class Gascard(ABC):
                 except ValueError:
                     pass
         # Combine the format and the values into a dictionary
-        return dict(zip(self._df_format, df))
+        return dict(zip(self.U_labels, df))
 
-    async def get(self, comm: str) -> dict:
-        """General function to receive from device."""
-        if not isinstance(comm, str):
-            comm = str(comm)
-        try:
-            comm = commands[comm.lower()]
-        except KeyError:
-            print("Invalid command")
-            return
-        command_mapping = {
+    async def get(self, vals: list) -> dict:
+        """General function to receive from device.
+
+        vals is list of names (given in values dictionary) to receive from device.
+        """
+        modes = []
+        output = {}
+        for val in vals:
+            for key, value in self.values.items():
+                for idx, names in enumerate(value[0]):
+                    if val == names:
+                        modes.append((key, names))
+        unique_modes = {i[0] for i in modes}
+        modes_func = {
             "N": self.get_val,
-            "C": self.get_coeff,
-            "E": self.environmental,
-            "O": self.output,
+            "N1": self.get_raw,
+            "C1": self.get_coeff,
+            "E1": self.environmental,
+            "O1": self.output,
             "X": self.settings,
             "U": self.userinterface,
         }
-        if comm[0].upper() in command_mapping:
-            return await command_mapping[comm[0].upper()]()
-        return
+        for mode in unique_modes:
+            ret = await modes_func[mode]()
+            names = [i[1] for i in modes if i[0] == mode]
+            output.update({names: ret[names] for names in names})
 
-    async def set(self, command: str, val=0) -> dict:
+        return output
+
+    async def set(self, params: dict) -> None:
         """General function to send to device."""
-        if not isinstance(command, str):
-            command = str(command)
-        try:
-            command = commands[command.lower()]
-        except KeyError:
-            print("Invalid command")
-            return
-        command_mapping = {
-            "E": self.environmental,
-            "O": self.output,
-            "X": self.settings,
-            "U": self.userinterface,
-        }
-        if command[0].upper() in command_mapping:
-            return await command_mapping[command[0].upper()](
-                command[1:] + str(val), opt="y"
-            )
+        modes = []
+        for key, value in params.items():
+            for key2, value2 in self.values.items():
+                for idx, names in enumerate(value2[0]):
+                    if key == names:
+                        modes.append((key2, value2[1][idx], value))
+        unique_modes = {i[0] for i in modes}
+        for (
+            mode
+        ) in unique_modes:  # Go through each unique mode that a setting is changed in
+            if self._current_mode != mode:
+                await self.set_mode(mode)  # Change the mode to the correct one
+            for val in [
+                i for i in modes if i[0] == mode
+            ]:  # Send all the commands for that mode
+                await self._device._write(f"{val[1]}{val[2]}")
 
         return
 

@@ -118,18 +118,29 @@ class SerialDevice(CommDevice):
             "xonxoff": xonxoff,
             "rtscts": rtscts,
         }
+        self.isOpen = False
         self.ser_devc = SerialStream(**self.serial_setup)
 
     async def _read(self, len: int = 1) -> ByteString:
         """Reads the serial communication.
+
+        Parameters
+        ----------
+        len : int
+            The length of the serial communication to read. One character if not specified.
 
         Returns:
         -------
         ByteString
             The serial communication.
         """
-        with trio.move_on_after(self.timeout / 1000):
-            return await self.ser_devc.receive_some(len)
+        if not self.isOpen:
+            async with self.ser_devc:
+                with trio.move_on_after(self.timeout / 1000):
+                    return await self.ser_devc.receive_some(len)
+        else:
+            with trio.move_on_after(self.timeout / 1000):
+                return await self.ser_devc.receive_some(len)
         return None
 
     async def _write(self, command: str) -> None:
@@ -140,8 +151,14 @@ class SerialDevice(CommDevice):
         command : str
             The serial communication.
         """
-        with trio.move_on_after(self.timeout / 1000):
-            await self.ser_devc.send_all(command.encode("ascii") + self.eol)
+        if not self.isOpen:
+            async with self.ser_devc:
+                with trio.move_on_after(self.timeout / 1000):
+                    await self.ser_devc.send_all(command.encode("ascii") + self.eol)
+        else:
+            with trio.move_on_after(self.timeout / 1000):
+                await self.ser_devc.send_all(command.encode("ascii") + self.eol)
+        return None
 
     async def _readline(self) -> str:
         """Reads the serial communication until end-of-line character reached.
@@ -152,7 +169,13 @@ class SerialDevice(CommDevice):
             The serial communication.
         """
         async with self.ser_devc:
+            self.isOpen = True
             line = bytearray()
+            c = None
+            while (
+                c != self.eol
+            ):  # Keep reading until end-of-line character reached, then we know new line is started
+                c = await self._read(1)
             while True:
                 c = None
                 with trio.move_on_after(self.timeout / 1000):
@@ -162,20 +185,28 @@ class SerialDevice(CommDevice):
                         break
                 if c is None:
                     break
+        self.isOpen = False
         return line.decode("ascii")
 
     async def _write_readall(self, command: str) -> list:
         """Write command and read until timeout reached.
 
+        Parameters
+        ----------
+        command : str
+            The serial communication.
+
         Returns:
         -------
-        str
-            The serial communication.
+        list
+            List of lines read from the device.
         """
         async with self.ser_devc:
+            self.isOpen = True
             await self._write(command)
             line = bytearray()
             arr_line = []
+            await self._flush()
             while True:
                 c = None
                 with trio.move_on_after(self.timeout / 1000):
@@ -187,6 +218,7 @@ class SerialDevice(CommDevice):
                         line += c
                 if c is None:
                     break
+        self.isOpen = False
         return arr_line
 
     async def _write_readline(self, command: str) -> str:
@@ -200,8 +232,14 @@ class SerialDevice(CommDevice):
             str: The serial communication.
         """
         async with self.ser_devc:
+            self.isOpen = True
             await self._write(command)
             line = bytearray()
+            c = None
+            while (
+                c != self.eol
+            ):  # Keep reading until end-of-line character reached, then we know new line is started
+                c = await self._read(1)
             while True:
                 c = None
                 with trio.move_on_after(self.timeout / 1000):
@@ -211,6 +249,7 @@ class SerialDevice(CommDevice):
                     line += c
                 if c is None:
                     break
+        self.isOpen = False
         return line.decode("ascii")
 
     async def _flush(self) -> None:
@@ -219,8 +258,10 @@ class SerialDevice(CommDevice):
 
     async def close(self) -> None:
         """Closes the serial communication."""
+        self.isOpen = False
         await self.ser_devc.aclose()
 
     async def open(self) -> None:
         """Opens the serial communication."""
+        self.isOpen = True
         await self.ser_devc.aopen()
