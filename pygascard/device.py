@@ -133,13 +133,8 @@ async def new_device(port: str, **kwargs: Any):
     dev_info_raw = dev_info_raw.replace("\x00", "")
     dev_info = dict(zip(U_labels, dev_info_raw.split()))
     # If the sensor does not output a user interface mode line
-    while "U" not in dev_info_raw.split()[0]:
+    if "U" not in dev_info_raw.split()[0]:
         print("Error: Gas Card Not in User Interface Mode")
-        dev_info_raw = await device._write_readline("U")
-        dev_info_raw = dev_info_raw.replace("\x00", "")
-        # Create a list of every word in the line
-        dev_info = dev_info_raw.split()
-    # dev_info = clean_mode(dev_info)
     return Gascard(device, dev_info, **kwargs)
 
 
