@@ -201,20 +201,32 @@ class Gascard(ABC):
 
         Zero gas MUST be flowing before zeroing
         Span gas MUST be flowing before spanning
-        Calibration commands: (z = zero, s<val> = span, h<val> = 1st coeff, i<val> = 2nd, j<val> = 3rd, k<val> = 4th).
+        Calibration commands: (z = zero, s<val> = span, h<val> = 1st coeff, i<val> = 2nd, j<val> = 3rd, k<val> = 4th)
         """
-        valid_commands = ["Z", "S", "H", "I", "J", "K"]
-        if com.upper() in valid_commands:
-            if com.upper() == "S":
-                span_value = com[1:]
-                if float(span_value) < 0.5 or float(span_value) > 1.20:
-                    print("Error: Span value must be between 0.5 and 1.20")
-                    return
-                await self._device._write_readline(com + span_value)
-            else:
-                await self._device._write_readline(com + com[1:])
+        # Zero gas
+        if com.upper() == "Z":
+            await self._device._write_readline("z")
+        # Span gas
+        elif com[0].upper() == "S":
+            while float(com[1:]) < 0.5 or float(com[1:]) > 1.20:
+                print("Error: Span value must be between 0.5 and 1.20")
+                return
+            if com[0].upper() != "S":
+                print("Invalid command")
+                return
+            # input("Press enter once span gas is flowing")
+            await self._device._write_readline("s" + com[1:])
+        elif com[0].upper() == "H":
+            await self._device._write_readline("h" + com[1:])
+        elif com[0].upper() == "I":
+            await self._device._write_readline("i" + com[1:])
+        elif com[0].upper() == "J":
+            await self._device._write_readline("j" + com[1:])
+        elif com[0].upper() == "K":
+            await self._device._write_readline("k" + com[1:])
         else:
-            print("Invalid command")
+            print("Invalid command")  # Note the p command hasn't be included
+            self.calibrate()
         return
 
     async def environmental(self, com="", opt="n") -> str:
@@ -241,8 +253,8 @@ class Gascard(ABC):
                 pass
         if opt.upper() == "Y":
             valid_commands = ["Z", "S", "C", "D", "E", "G", "M", "X"]
-            if com.upper() in valid_commands:
-                ret = await self._device._write_readline(com + com[1:])
+            if com[0].upper() in valid_commands:
+                ret = await self._device._write_readline(com[0].lower + com[1:])
                 ret = await self._device._write_readline("E1")
                 ret = ret.replace("\x00", "")
                 df = ret.split()
@@ -279,8 +291,8 @@ class Gascard(ABC):
                 pass
         if opt.upper() == "Y":
             valid_commands = ["M", "X", "A", "B", "V"]
-            if com.upper() in valid_commands:
-                ret = await self._device._write_readline(com + com[1:])
+            if com[0].upper() in valid_commands:
+                ret = await self._device._write_readline(com[0].lower() + com[1:])
                 ret = await self._device._write_readline("O1")
                 ret = ret.replace("\x00", "")
                 df = ret.split()
@@ -311,8 +323,10 @@ class Gascard(ABC):
             ret = ret.replace("\x00", "")
             df = ret.split()
         for index in range(len(df)):
-            if df[index].isnumeric():
+            try:
                 df[index] = float(df[index])
+            except ValueError:
+                pass
         if opt.upper() == "Y":
             command_mapping = {
                 "F": "s",
