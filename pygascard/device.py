@@ -119,7 +119,7 @@ values = {  # Name of variable : [Mode, Command to change]
     "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
     "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
     "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
-    "O1": [O1_labels, ["", "m", "c", "", "a", "b", ""]],
+    "O1": [O1_labels, ["", "m", "x", "", "a", "b", ""]],
     "X": [X_labels, ["", "", "", "", "f", "t", ""]],
     "U": [U_labels, ["", "", "", "", "d"]],
 }
@@ -482,14 +482,13 @@ class Gascard(ABC):
                     if key == names:
                         modes.append((key2, value2[1][idx], value))
         unique_modes = {i[0] for i in modes}
-        for (
-            mode
-        ) in unique_modes:  # Go through each unique mode that a setting is changed in
+        # Go through each unique mode that a setting is changed in
+        for mode in unique_modes:
             if self._current_mode != mode:
-                await self.set_mode(mode)  # Change the mode to the correct one
-            for val in [
-                i for i in modes if i[0] == mode
-            ]:  # Send all the commands for that mode
+                # Change the mode to the correct one
+                await self.set_mode(mode)
+            # Send all the commands for that mode
+            for val in [i for i in modes if i[0] == mode]:
                 await self._device._write(f"{val[1]}{val[2]}")
 
         return
