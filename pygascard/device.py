@@ -7,126 +7,27 @@ from comm import SerialDevice
 import trio
 from trio import run
 
-N_labels = [
-    # Lists the outputs of the sensor in normal mode in order
-    "Mode",
-    "Conc 1",
-    "Conc 2",
-    "Conc 3",
-    "Conc 4",
-    "Conc 5",
-    "Temperature",
-    "Pressure",
-    "Humidity",
-]
-N1_labels = [
-    # Lists the outputs of the sensor in normal mode in order
-    "Mode",
-    "Sample Channel",
-    "Reference Channel",
-    "Voltage PWM Value",
-    "Conc",
-    "Sensor Temperature",
-    "Sensor Pressure",
-]
-C1_labels = [
-    # Lists the outputs of the sensor in coefficient mode in order
-    "Mode",
-    "CoeffA",
-    "CoeffB",
-    "CoeffC",
-    "CoeffD",
-    "Zero gas Corr. Factor",
-    "Span gas Corr. Factor",
-    "Zero Pot",
-    "Span Pot",
-    "Sam. Pot",
-    "Ref. Pot",
-]
-E1_labels = [
-    # Lists the outputs of the sensor in environmental mode in order
-    "Mode",
-    "Zero Cal. Temp.",
-    "Span Cal. Temp.",
-    "Pressure Sensor Slope Cor.",
-    "Pressure Sensor Offset Cor.",
-    "Press 4th Coeff",
-    "Press 3rd Coeff",
-    "Press 2nd Coeff",
-    "Press 1st Coeff",
-    "Zero Temp Correction Value",
-    "Span Temp Correction Value",
-]
-O1_labels = [
-    # Lists the outputs of the sensor in output mode in order
-    "Mode",
-    "PWM Voltage Output Slope Corr",
-    "PWM Voltage Output Offset Corr",
-    "PWM Voltage Value",
-    "PWM Current Output Slope Corr",
-    "PWM Current Output Offset Corr",
-    "PWM Current Value",
-]
-X_labels = [
-    # Lists the outputs of the sensor in settings mode in order
-    "Mode",
-    "Firmware Version",
-    "Serial Number",
-    "Config Register",
-    "Frequency",
-    "Time Constant",
-    "Switches State",
-]
-U_labels = [
-    # Lists the outputs of the sensor in user interface mode in order
-    "Mode",
-    "Gas Range",
-    "Gas Type",
-    "Background Gas",
-    "Display selection",
-]
-
-commands = {
-    "val": "N",
-    "coeff": "C",
-    "environmental": "E",
-    "zero temp corr": "Ez",
-    "span temp corr": "Es",
-    "1st order coeff": "Eg",
-    "2nd order coeff": "Ee",
-    "3rd order coeff": "Ed",
-    "4th order coeff": "Ec",
-    "slope corr": "Em",
-    "offset corr": "Ex",
-    "output": "O",
-    "pwm volt slope": "Om",
-    "pwm volt offset": "Ox",
-    "pwm current slope": "Oa",
-    "pwm current offset": "Ob",
-    "volt output range": "Ov",
-    "settings": "X",
-    "lamp freq": "Xf",
-    "rc time const": "Xt",
-    "reset all": "Xd",
-    "soft reset": "Xq",
-    "user interface": "U",
-    "display selection": "Ud",
-    "test leds": "Ut",
-}
-
-values = {  # Name of variable : [Mode, Command to change]
-    "N": [N_labels, ["", "", "", "", "", "", "", "", ""]],
-    "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
-    "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
-    "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
-    "O1": [O1_labels, ["", "m", "x", "", "a", "b", ""]],
-    "X": [X_labels, ["", "", "", "", "f", "t", ""]],
-    "U": [U_labels, ["", "", "", "", "d"]],
-}
-
+with open("codes.json") as f:
+    codes = json.load(f)
+N_labels = codes["N_labels"]
+N1_labels = codes["N1_labels"]
+C1_labels = codes["C1_labels"]
+E1_labels = codes["E1_labels"]
+O1_labels = codes["O1_labels"]
+X_labels = codes["X_labels"]
+U_labels = codes["U_labels"]
+commands = codes["commands"][0]
+values = codes["values"][0]
 
 async def new_device(port: str, **kwargs: Any):
-    """Creates a new device. Chooses appropriate device based on characteristics."""
+    """Creates a new device. Chooses appropriate device based on characteristics.
+
+    Args:
+        **kwargs: Any
+
+    Returns:
+        Device: The new device.
+    """
     if port.startswith("/dev/"):
         device = SerialDevice(port, **kwargs)
     dev_info_raw = await device._write_readline("U")
@@ -175,7 +76,11 @@ class Gascard(ABC):
         self.values = values
 
     async def get_mode(self) -> str:
-        """Gets the current mode of the device."""
+        """Gets the current mode of the device.
+
+        Returns:
+            str: Current mode of device
+        """
         ret = await self._device._readline()
         mode = ret[0:2].strip()
         if mode in self._modes:
@@ -185,7 +90,11 @@ class Gascard(ABC):
         return mode
 
     async def set_mode(self, mode: str) -> None:
-        """Sets the mode of the device."""
+        """Sets the mode of the device.
+
+        Args:
+            mode (str): Desired mode for device
+        """
         if mode in self._modes:
             await self._device._write(mode)
             self._current_mode = mode
@@ -194,7 +103,11 @@ class Gascard(ABC):
         return
 
     async def get_val(self) -> dict:
-        """Gets the current value of the device."""
+        """Gets the current value of the device.
+        
+        Returns:
+            dict: Normal (N) mode dataframe
+        """
         if self._current_mode != "N":
             await self.set_mode("N")
         ret = await self._device._readline()
@@ -210,7 +123,11 @@ class Gascard(ABC):
         return dict(zip(self.N_labels, df))
 
     async def get_raw(self) -> dict:
-        """Gets the raw sensor output."""
+        """Gets the raw sensor output.
+        
+        Returns:
+            dict: Normal Channel (N1) mode Dataframe
+        """
         if self._current_mode != "N1":
             await self.set_mode("N1")
         ret = await self._device._readline()
@@ -226,7 +143,11 @@ class Gascard(ABC):
         return dict(zip(self.N1_labels, df))
 
     async def get_coeff(self) -> dict:
-        """Gets the current value of the device."""
+        """Gets the current value of the device.
+        
+        Returns:
+            dict: Coefficient Channel (C1) mode dataframe 
+        """
         if self._current_mode != "C1":
             await self.set_mode("C1")
         ret = await self._device._readline()
@@ -241,15 +162,20 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.C1_labels, df))
 
-    # There must be some way to let the user know which commands are vlid
+    # There must be some way to let the user know which commands are valid
 
-    async def calibrate(self, com) -> None:
+    async def calibrate(self, com: str) -> None:
         """Allows user to start calibration routines or change coefficients.
 
         Zero gas MUST be flowing before zeroing
         Span gas MUST be flowing before spanning
         Calibration commands: (z = zero, s<val> = span, h<val> = 1st coeff, i<val> = 2nd, j<val> = 3rd, k<val> = 4th)
+        
+        
+        Args:
+            com (str): The command for the device
         """
+        # await self._device._write_readline(f"{com[0].lower()}{com[1:]}")
         # Zero gas
         if com.upper() == "Z":
             await self._device._write_readline("z")
@@ -262,26 +188,31 @@ class Gascard(ABC):
                 print("Invalid command")
                 return
             # input("Press enter once span gas is flowing")
-            await self._device._write_readline("s" + com[1:])
+            await self._device._write_readline(f"s{com[1:]}")
         elif com[0].upper() == "H":
-            await self._device._write_readline("h" + com[1:])
+            await self._device._write_readline(f"h{com[1:]}")
         elif com[0].upper() == "I":
-            await self._device._write_readline("i" + com[1:])
+            await self._device._write_readline(f"i{com[1:]}")
         elif com[0].upper() == "J":
-            await self._device._write_readline("j" + com[1:])
+            await self._device._write_readline(f"j{com[1:]}")
         elif com[0].upper() == "K":
-            await self._device._write_readline("k" + com[1:])
+            await self._device._write_readline(f"k{com[1:]}")
         else:
             print("Invalid command")  # Note the p command hasn't be included
             self.calibrate()
         return
 
-    async def environmental(self, com="", opt="n") -> str:
+    async def environmental(self, com: str = "", opt: bool = False) -> dict:
         """Display and Change Environmental Parameters.
 
-        com = The command code
-        opt = to enable optional parts of the command
         WARNING Changing any environmental parameter will lead to incorrect gas sensor operation
+        
+        Args:
+            com (str): The command for the device
+            opt (bool): To enable optional parts of the command
+        
+        Returns:
+            dict: Environmental Mode (E1) dataframe
         """
         if self._current_mode != "E1":
             await self.set_mode("E1")
@@ -295,10 +226,10 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        if opt.upper() == "Y":
+        if opt:
             valid_commands = ["Z", "S", "C", "D", "E", "G", "M", "X"]
             if com[0].upper() in valid_commands:
-                ret = await self._device._write_readline(com[0].lower + com[1:])
+                ret = await self._device._write_readline(f"{com[0].lower}{com[1:]}")
                 ret = await self._device._write_readline("E1")
                 ret = ret.replace("\x00", "")
                 df = ret.split()
@@ -316,8 +247,16 @@ class Gascard(ABC):
                 print("Invalid command")
         return dict(zip(self.E1_labels, df))
 
-    async def output(self, com="", opt="n") -> str:
-        """Display and Change output variables."""
+    async def output(self, com: str = "", opt: bool = False) -> dict:
+        """Display and Change output variables.
+        
+        Args:
+            com (str): The command for the device
+            opt (bool): To enable optional parts of the command
+        
+        Returns:
+            dict: Output Channel Mode (O1) dataframe
+        """
         if self._current_mode != "O1":
             await self.set_mode("O1")
         ret = await self._device._readline()
@@ -333,7 +272,7 @@ class Gascard(ABC):
         if opt.upper() == "Y":
             valid_commands = ["M", "X", "A", "B", "V"]
             if com[0].upper() in valid_commands:
-                ret = await self._device._write_readline(com[0].lower() + com[1:])
+                ret = await self._device._write_readline(f"{com[0].lower()}{com[1:]}")
                 ret = await self._device._write_readline("O1")
                 ret = ret.replace("\x00", "")
                 df = ret.split()
@@ -351,8 +290,16 @@ class Gascard(ABC):
                 print("Invalid command")
         return dict(zip(self.O1_labels, df))
 
-    async def settings(self, com="", opt="n") -> dict:
-        """Display and Change Settings."""
+    async def settings(self, com: str = "", opt: bool = False) -> dict:
+        """Display and Change Settings.
+        
+        Args:
+            com (str): The command for the device
+            opt (bool): To enable optional parts of the command
+        
+        Returns:
+            dict: Settings mode (X) dataframe
+        """
         if self._current_mode != "X":
             await self.set_mode("X")
         ret = await self._device._readline()
@@ -378,14 +325,10 @@ class Gascard(ABC):
                     if float(com[1:]) < 1 or float(com[1:]) > 9:
                         print("Error: Frequency must be between 1 and 9")
                         return dict(zip(self._df_format, df))
-                    await self._device._write_readline(
-                        command_mapping[command] + com[1:]
-                    )
-                    ret = await self._device._write_readline("f" + com[1:])
+                    await self._device._write_readline(f"{command_mapping[command]}{com[1:]}")
+                    ret = await self._device._write_readline(f"f{com[1:]}")
                 else:
-                    ret = await self._device._write_readline(
-                        command_mapping[command] + com[1:]
-                    )
+                    ret = await self._device._write_readline(f"{command_mapping[command]}{com[1:]}")
             else:
                 print("Invalid command")
             ret = await self._device._write_readline("X")
@@ -403,8 +346,16 @@ class Gascard(ABC):
                     pass
         return dict(zip(self.X_labels, df))
 
-    async def userinterface(self, com="", opt="n") -> str:
-        """View user Interface."""
+    async def userinterface(self, com: str = "", opt: bool = False) -> dict:
+        """View user Interface.
+        
+        Args:
+            com (str): The command for the device
+            opt (bool): To enable optional parts of the command
+        
+        Returns:
+            dict: User Interface mode (U) dataframe
+        """
         if self._current_mode != "U":
             await self.set_mode("U")
         ret = await self._device._readline()
@@ -420,9 +371,9 @@ class Gascard(ABC):
         # opt lets user to display or test
         if opt.upper() == "Y":
             if com[0].upper() == "D":  # Display selection
-                ret = await self._device._write_readline("d" + com[1:])
+                ret = await self._device._write_readline(f"d{com[1:]}")
             elif com[0].upper() == "T":  # Test LEDs and display
-                ret = await self._device._write_readline("t" + com[1:])
+                ret = await self._device._write_readline(f"t{com[1:]}")
             else:
                 print("Invalid command")
             # Get the new dictionary, this should be cleaned up no point in repeating code like this
@@ -446,8 +397,12 @@ class Gascard(ABC):
 
     async def get(self, vals: list) -> dict:
         """General function to receive from device.
-
-        vals is list of names (given in values dictionary) to receive from device.
+        
+        Args:
+            vals (list): List of names (given in values dictionary) to receive from device.
+        
+        Returns:
+            dict: Combined dataframe with function calls
         """
         modes = []
         output = {}
@@ -470,11 +425,14 @@ class Gascard(ABC):
             ret = await modes_func[mode]()
             names = [i[1] for i in modes if i[0] == mode]
             output.update({names: ret[names] for names in names})
-
         return output
 
     async def set(self, params: dict) -> None:
-        """General function to send to device."""
+        """General function to send to device.
+        
+        Args:
+            params (dict): Variable:Value pairs for each desired set
+        """
         modes = []
         for key, value in params.items():
             for key2, value2 in self.values.items():
@@ -493,7 +451,7 @@ class Gascard(ABC):
 
         return
 
-    async def zero(self):
+    async def zero(self) -> None:
         """General function to zero the device.
 
         Device MUST be flowing zero gas BEFORE calling this function.
@@ -501,18 +459,28 @@ class Gascard(ABC):
         await self.calibrate("z")
         return
 
-    async def span(self, val):
+    async def span(self, val: float) -> None:
         """General function to span the device.
 
-        Device MUST be flowing span gas BEFORE calling this function. Span value must be between 0.5 and 1.20
+        Device MUST be flowing span gas BEFORE calling this function.
+        
+        Args:
+            val (dict): Gas concentration as a fraction of full scale (0.5 to 1.2)
         """
-        await self.calibrate("s" + val)
+        await self.calibrate(f"s{val}")
         return
 
-    async def coefficients(self, hval, ival, jval, kval):
-        """Set the calibration coefficients."""
-        await self.calibrate("h" + hval)
-        await self.calibrate("i" + ival)
-        await self.calibrate("j" + jval)
-        await self.calibrate("k" + kval)
+    async def coefficients(self, hval: float, ival: float, jval: float, kval: float) -> None:
+        """Set the calibration coefficients.
+        
+        Args:
+            hval (float): 1st Order Linearization coeff
+            ival (float): 2nd Order Linearization coeff
+            jval (float): 3rd Order Linearization coeff
+            kval (float): 4th Order Linearization coeff
+        """
+        await self.calibrate(f"h{hval}")
+        await self.calibrate(f"i{ival}")
+        await self.calibrate(f"j{jval}")
+        await self.calibrate(f"k{kval}")
         return
