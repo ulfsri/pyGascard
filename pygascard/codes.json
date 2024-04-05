@@ -1,6 +1,5 @@
 {
     "N_labels" : [
-        # Lists the outputs of the sensor in normal mode in order
         "Mode",
         "Conc 1",
         "Conc 2",
@@ -9,20 +8,18 @@
         "Conc 5",
         "Temperature",
         "Pressure",
-        "Humidity",
+        "Humidity"
     ],
     "N1_labels" : [
-        # Lists the outputs of the sensor in normal mode in order
         "Mode",
         "Sample Channel",
         "Reference Channel",
         "Voltage PWM Value",
         "Conc",
         "Sensor Temperature",
-        "Sensor Pressure",
+        "Sensor Pressure"
     ],
     "C1_labels" : [
-        # Lists the outputs of the sensor in coefficient mode in order
         "Mode",
         "CoeffA",
         "CoeffB",
@@ -33,10 +30,9 @@
         "Zero Pot",
         "Span Pot",
         "Sam. Pot",
-        "Ref. Pot",
+        "Ref. Pot"
     ],
     "E1_labels" : [
-        # Lists the outputs of the sensor in environmental mode in order
         "Mode",
         "Zero Cal. Temp.",
         "Span Cal. Temp.",
@@ -47,35 +43,32 @@
         "Press 2nd Coeff",
         "Press 1st Coeff",
         "Zero Temp Correction Value",
-        "Span Temp Correction Value",
+        "Span Temp Correction Value"
     ],
     "O1_labels" : [
-        # Lists the outputs of the sensor in output mode in order
         "Mode",
         "PWM Voltage Output Slope Corr",
         "PWM Voltage Output Offset Corr",
         "PWM Voltage Value",
         "PWM Current Output Slope Corr",
         "PWM Current Output Offset Corr",
-        "PWM Current Value",
+        "PWM Current Value"
     ],
     "X_labels" : [
-        # Lists the outputs of the sensor in settings mode in order
         "Mode",
         "Firmware Version",
         "Serial Number",
         "Config Register",
         "Frequency",
         "Time Constant",
-        "Switches State",
+        "Switches State"
     ],
     "U_labels" : [
-        # Lists the outputs of the sensor in user interface mode in order
         "Mode",
         "Gas Range",
         "Gas Type",
         "Background Gas",
-        "Display selection",
+        "Display selection"
     ],
     "commands" : [{
         "val": "N",
@@ -102,16 +95,6 @@
         "soft reset": "Xq",
         "user interface": "U",
         "display selection": "Ud",
-        "test leds": "Ut",
-    }],
-
-    "values" :[ {  # Name of variable : [Mode, Command to change]
-        "N": [N_labels, ["", "", "", "", "", "", "", "", ""]],
-        "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
-        "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
-        "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
-        "O1": [O1_labels, ["", "m", "x", "", "a", "b", ""]],
-        "X": [X_labels, ["", "", "", "", "f", "t", ""]],
-        "U": [U_labels, ["", "", "", "", "d"]],
+        "test leds": "Ut"
     }]
 }

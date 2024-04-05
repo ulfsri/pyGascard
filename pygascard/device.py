@@ -1,5 +1,6 @@
 from typing import Any
 
+import json
 import re
 from abc import ABC
 
@@ -17,7 +18,16 @@ O1_labels = codes["O1_labels"]
 X_labels = codes["X_labels"]
 U_labels = codes["U_labels"]
 commands = codes["commands"][0]
-values = codes["values"][0]
+values = {
+    "N": [N_labels, ["", "", "", "", "", "", "", "", ""]],
+    "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
+    "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
+    "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
+    "O1": [O1_labels, ["", "m", "x", "", "a", "b", ""]],
+    "X": [X_labels, ["", "", "", "", "f", "t", ""]],
+    "U": [U_labels, ["", "", "", "", "d"]],
+}
+
 
 async def new_device(port: str, **kwargs: Any):
     """Creates a new device. Chooses appropriate device based on characteristics.
@@ -57,7 +67,7 @@ class Gascard(ABC):
         self._modes = [
             "N",
             "N1",
-            "C",
+            #    "C",
             "C1",
             "E1",
             "O1",
@@ -104,7 +114,7 @@ class Gascard(ABC):
 
     async def get_val(self) -> dict:
         """Gets the current value of the device.
-        
+
         Returns:
             dict: Normal (N) mode dataframe
         """
@@ -124,7 +134,7 @@ class Gascard(ABC):
 
     async def get_raw(self) -> dict:
         """Gets the raw sensor output.
-        
+
         Returns:
             dict: Normal Channel (N1) mode Dataframe
         """
@@ -144,9 +154,9 @@ class Gascard(ABC):
 
     async def get_coeff(self) -> dict:
         """Gets the current value of the device.
-        
+
         Returns:
-            dict: Coefficient Channel (C1) mode dataframe 
+            dict: Coefficient Channel (C1) mode dataframe
         """
         if self._current_mode != "C1":
             await self.set_mode("C1")
@@ -170,8 +180,8 @@ class Gascard(ABC):
         Zero gas MUST be flowing before zeroing
         Span gas MUST be flowing before spanning
         Calibration commands: (z = zero, s<val> = span, h<val> = 1st coeff, i<val> = 2nd, j<val> = 3rd, k<val> = 4th)
-        
-        
+
+
         Args:
             com (str): The command for the device
         """
@@ -206,11 +216,11 @@ class Gascard(ABC):
         """Display and Change Environmental Parameters.
 
         WARNING Changing any environmental parameter will lead to incorrect gas sensor operation
-        
+
         Args:
             com (str): The command for the device
             opt (bool): To enable optional parts of the command
-        
+
         Returns:
             dict: Environmental Mode (E1) dataframe
         """
@@ -249,11 +259,11 @@ class Gascard(ABC):
 
     async def output(self, com: str = "", opt: bool = False) -> dict:
         """Display and Change output variables.
-        
+
         Args:
             com (str): The command for the device
             opt (bool): To enable optional parts of the command
-        
+
         Returns:
             dict: Output Channel Mode (O1) dataframe
         """
@@ -269,7 +279,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        if opt.upper() == "Y":
+        if opt:
             valid_commands = ["M", "X", "A", "B", "V"]
             if com[0].upper() in valid_commands:
                 ret = await self._device._write_readline(f"{com[0].lower()}{com[1:]}")
@@ -292,11 +302,11 @@ class Gascard(ABC):
 
     async def settings(self, com: str = "", opt: bool = False) -> dict:
         """Display and Change Settings.
-        
+
         Args:
             com (str): The command for the device
             opt (bool): To enable optional parts of the command
-        
+
         Returns:
             dict: Settings mode (X) dataframe
         """
@@ -312,7 +322,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        if opt.upper() == "Y":
+        if opt:
             command_mapping = {
                 "F": "s",
                 "T": "t",
@@ -325,10 +335,14 @@ class Gascard(ABC):
                     if float(com[1:]) < 1 or float(com[1:]) > 9:
                         print("Error: Frequency must be between 1 and 9")
                         return dict(zip(self._df_format, df))
-                    await self._device._write_readline(f"{command_mapping[command]}{com[1:]}")
+                    await self._device._write_readline(
+                        f"{command_mapping[command]}{com[1:]}"
+                    )
                     ret = await self._device._write_readline(f"f{com[1:]}")
                 else:
-                    ret = await self._device._write_readline(f"{command_mapping[command]}{com[1:]}")
+                    ret = await self._device._write_readline(
+                        f"{command_mapping[command]}{com[1:]}"
+                    )
             else:
                 print("Invalid command")
             ret = await self._device._write_readline("X")
@@ -348,11 +362,11 @@ class Gascard(ABC):
 
     async def userinterface(self, com: str = "", opt: bool = False) -> dict:
         """View user Interface.
-        
+
         Args:
             com (str): The command for the device
             opt (bool): To enable optional parts of the command
-        
+
         Returns:
             dict: User Interface mode (U) dataframe
         """
@@ -369,7 +383,7 @@ class Gascard(ABC):
             except ValueError:
                 pass
         # opt lets user to display or test
-        if opt.upper() == "Y":
+        if opt:
             if com[0].upper() == "D":  # Display selection
                 ret = await self._device._write_readline(f"d{com[1:]}")
             elif com[0].upper() == "T":  # Test LEDs and display
@@ -397,10 +411,10 @@ class Gascard(ABC):
 
     async def get(self, vals: list) -> dict:
         """General function to receive from device.
-        
+
         Args:
             vals (list): List of names (given in values dictionary) to receive from device.
-        
+
         Returns:
             dict: Combined dataframe with function calls
         """
@@ -409,7 +423,7 @@ class Gascard(ABC):
         for val in vals:
             for key, value in self.values.items():
                 for idx, names in enumerate(value[0]):
-                    if val == names:
+                    if val == names:  # I changed this from names to key
                         modes.append((key, names))
         unique_modes = {i[0] for i in modes}
         modes_func = {
@@ -429,7 +443,7 @@ class Gascard(ABC):
 
     async def set(self, params: dict) -> None:
         """General function to send to device.
-        
+
         Args:
             params (dict): Variable:Value pairs for each desired set
         """
@@ -463,16 +477,18 @@ class Gascard(ABC):
         """General function to span the device.
 
         Device MUST be flowing span gas BEFORE calling this function.
-        
+
         Args:
             val (dict): Gas concentration as a fraction of full scale (0.5 to 1.2)
         """
         await self.calibrate(f"s{val}")
         return
 
-    async def coefficients(self, hval: float, ival: float, jval: float, kval: float) -> None:
+    async def coefficients(
+        self, hval: float, ival: float, jval: float, kval: float
+    ) -> None:
         """Set the calibration coefficients.
-        
+
         Args:
             hval (float): 1st Order Linearization coeff
             ival (float): 2nd Order Linearization coeff
