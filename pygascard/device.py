@@ -323,3 +323,12 @@ class Gascard(ABC):
         """
         await self.set({'Span Gas Corr Factor':val})
         return
+
+    async def time_const(self, val: float) -> None:
+        """Sets the time constant of the device.
+
+        Args:
+            val (float): Time constant in seconds (0.1 to 10)
+        """
+        await self.set({'Time Constant':val})
+        return
