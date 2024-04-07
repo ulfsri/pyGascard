@@ -117,7 +117,7 @@ class Gascard(ABC):
             dict: Normal (N) mode dataframe
         """
         if self._current_mode != "N":
-            await self.set_mode("N")
+            await self._set_mode("N")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -137,7 +137,7 @@ class Gascard(ABC):
             dict: Normal Channel (N1) mode Dataframe
         """
         if self._current_mode != "N1":
-            await self.set_mode("N1")
+            await self._set_mode("N1")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -157,7 +157,7 @@ class Gascard(ABC):
             dict: Coefficient Channel (C1) mode dataframe
         """
         if self._current_mode != "C1":
-            await self.set_mode("C1")
+            await self._set_mode("C1")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -179,7 +179,7 @@ class Gascard(ABC):
             dict: Environmental Mode (E1) dataframe
         """
         if self._current_mode != "E1":
-            await self.set_mode("E1")
+            await self._set_mode("E1")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -199,7 +199,7 @@ class Gascard(ABC):
             dict: Output Channel Mode (O1) dataframe
         """
         if self._current_mode != "O1":
-            await self.set_mode("O1")
+            await self._set_mode("O1")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -219,7 +219,7 @@ class Gascard(ABC):
             dict: Settings mode (X) dataframe
         """
         if self._current_mode != "X":
-            await self.set_mode("X")
+            await self._set_mode("X")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -239,7 +239,7 @@ class Gascard(ABC):
             dict: User Interface mode (U) dataframe
         """
         if self._current_mode != "U":
-            await self.set_mode("U")
+            await self._set_mode("U")
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
@@ -254,6 +254,8 @@ class Gascard(ABC):
 
     async def get(self, vals: list) -> dict:
         """General function to receive from device.
+
+        Max acquisition rate seems to be 4 Hz
 
         Args:
             vals (list): List of names (given in values dictionary) to receive from device.
@@ -299,7 +301,7 @@ class Gascard(ABC):
         unique_modes = {i[0] for i in modes}
         for mode in unique_modes:
             if self._current_mode != mode:
-                await self.set_mode(mode)
+                await self._set_mode(mode)
             for val in [i for i in modes if i[0] == mode]:
                 await self._device._write(f"{val[1]}{val[2]}")
 
@@ -308,27 +310,29 @@ class Gascard(ABC):
     async def zero(self) -> None:
         """Sets the zero reference of the device.
 
-        **Device MUST be flowing zero gas BEFORE calling this function.**
+        Note:
+            **Device MUST be flowing zero gas BEFORE calling this function.**
         """
-        await self.set({'Zero Gas Corr Factor':''})
+        await self.set({"Zero Gas Corr Factor": ""})
         return
 
     async def span(self, val: float) -> None:
         """Sets the span reference of the device.
 
-        **Device MUST be flowing span gas BEFORE calling this function.**
+        Note:
+            **Device MUST be flowing span gas BEFORE calling this function.**
 
         Args:
             val (dict): Gas concentration as a fraction of full scale (0.5 to 1.2)
         """
-        await self.set({'Span Gas Corr Factor':val})
+        await self.set({"Span Gas Corr Factor": val})
         return
 
-    async def time_const(self, val: float) -> None:
-        """Sets the time constant of the device.
+    async def time_const(self, val: int) -> None:
+        """Sets the time constant of the RC filter of the device.
 
         Args:
-            val (float): Time constant in seconds (0.1 to 10)
+            val (int): Time constant in seconds (0 to 120)
         """
-        await self.set({'Time Constant':val})
+        await self.set({"Time Constant": val})
         return
