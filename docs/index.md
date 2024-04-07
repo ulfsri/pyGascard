@@ -1,6 +1,6 @@
 # pyGascard
 
-![pyGascard](assets/images/logo_pyalicat.svg)
+![pyGascard](assets/images/logo_pygascard.svg)
 
 <div align="center">
 <a href="https://pypi.org/project/pygascard" target="_blank">

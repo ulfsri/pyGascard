@@ -1,4 +1,5 @@
 # pyGascard
+![pyGascard](docs/assets/images/logo_pygascard.svg)
 
 <div align="center">
 
