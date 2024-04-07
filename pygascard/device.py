@@ -62,7 +62,7 @@ class Gascard(ABC):
         self._device = device
         self._dev_info = dev_info
         self._current_mode = "U"
-        self._modes = [
+        self._MODES = (
             "N",
             "N1",
             #    "C",
@@ -72,7 +72,7 @@ class Gascard(ABC):
             "D",
             "X",
             "U",
-        ]  # What is mode C?
+        )  # What is mode C?
 
         self.N_labels = N_labels
         self.N1_labels = N1_labels
@@ -83,34 +83,34 @@ class Gascard(ABC):
         self.U_labels = U_labels
         self.values = values
 
-    async def get_mode(self) -> str:
+    async def _get_mode(self) -> str:
         """Gets the current mode of the device.
 
         Returns:
             str: Current mode of device
         """
         ret = await self._device._readline()
-        mode = ret[0:2].strip()
-        if mode in self._modes:
+        mode = ret[:2].strip()
+        if mode in self._MODES:
             self.current_mode = mode
         else:
             print("Error: Invalid Mode")
         return mode
 
-    async def set_mode(self, mode: str) -> None:
+    async def _set_mode(self, mode: str) -> None:
         """Sets the mode of the device.
 
         Args:
             mode (str): Desired mode for device
         """
-        if mode in self._modes:
+        if mode in self._MODES:
             await self._device._write(mode)
             self._current_mode = mode
         else:
             print("Error: Invalid Mode")
         return
 
-    async def get_val(self) -> dict:
+    async def _get_val(self) -> dict:
         """Gets the current value of the device.
 
         Returns:
@@ -130,7 +130,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.N_labels, df))
 
-    async def get_raw(self) -> dict:
+    async def _get_raw(self) -> dict:
         """Gets the raw sensor output.
 
         Returns:
@@ -141,7 +141,7 @@ class Gascard(ABC):
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        if "N1" not in df[0]:
+        if "N1" not in df[:2]:
             print("Error: Gas Card Not in Normal Mode")
         for index in range(len(df)):
             try:
@@ -150,7 +150,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.N1_labels, df))
 
-    async def get_coeff(self) -> dict:
+    async def _get_coeff(self) -> dict:
         """Gets the current value of the device.
 
         Returns:
@@ -161,7 +161,7 @@ class Gascard(ABC):
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        if "C" not in df[0]:
+        if "C1" not in df[:2]:
             print("Error: Gas Card Not in Coefficient Mode")
         for index in range(len(df)):
             try:
@@ -170,7 +170,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.C1_labels, df))
 
-    async def get_environmental(self) -> dict:
+    async def _get_environmental(self) -> dict:
         """Gets environmental parameters.
 
         **WARNING Changing any environmental parameter will lead to incorrect gas sensor operation**
@@ -192,7 +192,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.E1_labels, df))
 
-    async def get_output(self) -> dict:
+    async def _get_output(self) -> dict:
         """Display and Change output variables.
 
         Returns:
@@ -203,7 +203,7 @@ class Gascard(ABC):
         ret = await self._device._readline()
         ret = ret.replace("\x00", "")
         df = ret.split()
-        if "O" not in df[0]:
+        if "O1" not in df[0:2]:
             print("Error: Gas Card Not in Output Mode")
         for index in range(len(df)):
             try:
@@ -212,7 +212,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.O1_labels, df))
 
-    async def get_settings(self) -> dict:
+    async def _get_settings(self) -> dict:
         """Display and Change Settings.
 
         Returns:
@@ -232,7 +232,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(self.X_labels, df))
 
-    async def get_userinterface(self) -> dict:
+    async def _get_userinterface(self) -> dict:
         """View user Interface.
 
         Returns:
@@ -269,17 +269,17 @@ class Gascard(ABC):
                     if val == names:  # I changed this from names to key
                         modes.append((key, names))
         unique_modes = {i[0] for i in modes}
-        modes_func = {
-            "N": self.get_val,
-            "N1": self.get_raw,
-            "C1": self.get_coeff,
-            "E1": self.get_environmental,
-            "O1": self.get_output,
-            "X": self.get_settings,
-            "U": self.get_userinterface,
+        MODES_FUNC = {
+            "N": self._get_val,
+            "N1": self._get_raw,
+            "C1": self._get_coeff,
+            "E1": self._get_environmental,
+            "O1": self._get_output,
+            "X": self._get_settings,
+            "U": self._get_userinterface,
         }
         for mode in unique_modes:
-            ret = await modes_func[mode]()
+            ret = await MODES_FUNC[mode]()
             names = [i[1] for i in modes if i[0] == mode]
             output.update({names: ret[names] for names in names})
         return output
@@ -297,12 +297,9 @@ class Gascard(ABC):
                     if key == names:
                         modes.append((key2, value2[1][idx], value))
         unique_modes = {i[0] for i in modes}
-        # Go through each unique mode that a setting is changed in
         for mode in unique_modes:
             if self._current_mode != mode:
-                # Change the mode to the correct one
                 await self.set_mode(mode)
-            # Send all the commands for that mode
             for val in [i for i in modes if i[0] == mode]:
                 await self._device._write(f"{val[1]}{val[2]}")
 
