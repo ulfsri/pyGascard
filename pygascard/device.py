@@ -10,22 +10,14 @@ from trio import run
 
 with open("codes.json") as f:
     codes = json.load(f)
-N_labels = codes["N_labels"]
-N1_labels = codes["N1_labels"]
-C1_labels = codes["C1_labels"]
-E1_labels = codes["E1_labels"]
-O1_labels = codes["O1_labels"]
-X_labels = codes["X_labels"]
-U_labels = codes["U_labels"]
-values = {
-    "N": [N_labels, ["", "", "", "", "", "", "", "", ""]],
-    "N1": [N1_labels, ["", "", "", "o", "", "", ""]],
-    "C1": [C1_labels, ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
-    "E1": [E1_labels, ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
-    "O1": [O1_labels, ["", "m", "x", "", "a", "b", ""]],
-    "X": [X_labels, ["", "", "", "", "f", "t", ""]],
-    "U": [U_labels, ["", "", "", "", "d"]],
-}
+values = codes["values"]
+N_labels = values["N"][0]
+N1_labels = values["N1"][0]
+C1_labels = values["C1"][0]
+E1_labels = values["E1"][0]
+O1_labels = values["O1"][0]
+X_labels = values["X"][0]
+U_labels = values["U"][0]
 
 
 async def new_device(port: str, **kwargs: Any):
@@ -65,23 +57,13 @@ class Gascard(ABC):
         self._MODES = (
             "N",
             "N1",
-            #    "C",
             "C1",
             "E1",
             "O1",
             "D",
             "X",
             "U",
-        )  # What is mode C?
-
-        self.N_labels = N_labels
-        self.N1_labels = N1_labels
-        self.C1_labels = C1_labels
-        self.E1_labels = E1_labels
-        self.O1_labels = O1_labels
-        self.X_labels = X_labels
-        self.U_labels = U_labels
-        self.values = values
+        )
 
     async def _get_mode(self) -> str:
         """Gets the current mode of the device.
@@ -128,7 +110,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.N_labels, df))
+        return dict(zip(N_labels, df))
 
     async def _get_raw(self) -> dict:
         """Gets the raw sensor output.
@@ -148,7 +130,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.N1_labels, df))
+        return dict(zip(N1_labels, df))
 
     async def _get_coeff(self) -> dict:
         """Gets the current value of the device.
@@ -168,7 +150,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.C1_labels, df))
+        return dict(zip(C1_labels, df))
 
     async def _get_environmental(self) -> dict:
         """Gets environmental parameters.
@@ -230,7 +212,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.X_labels, df))
+        return dict(zip(X_labels, df))
 
     async def _get_userinterface(self) -> dict:
         """View user Interface.
@@ -250,7 +232,7 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.U_labels, df))
+        return dict(zip(U_labels, df))
 
     async def get(self, vals: list) -> dict:
         """General function to receive from device.
@@ -263,12 +245,14 @@ class Gascard(ABC):
         Returns:
             dict: Dictionary of names requested with their values
         """
+        if not isinstance(vals, list):
+            vals = [vals]
         modes = []
         output = {}
         for val in vals:
-            for key, value in self.values.items():
+            for key, value in values.items():
                 for idx, names in enumerate(value[0]):
-                    if val == names:  # I changed this from names to key
+                    if val == names:
                         modes.append((key, names))
         unique_modes = {i[0] for i in modes}
         MODES_FUNC = {
@@ -294,7 +278,7 @@ class Gascard(ABC):
         """
         modes = []
         for key, value in params.items():
-            for key2, value2 in self.values.items():
+            for key2, value2 in values.items():
                 for idx, names in enumerate(value2[0]):
                     if key == names:
                         modes.append((key2, value2[1][idx], value))
