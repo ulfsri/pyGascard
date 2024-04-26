@@ -155,7 +155,8 @@ class Gascard(ABC):
     async def _get_environmental(self) -> dict:
         """Gets environmental parameters.
 
-        **WARNING Changing any environmental parameter will lead to incorrect gas sensor operation**
+        Note:
+            **WARNING Changing any environmental parameter will lead to incorrect gas sensor operation**
 
         Returns:
             dict: Environmental Mode (E1) dataframe
