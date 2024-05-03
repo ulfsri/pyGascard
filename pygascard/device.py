@@ -20,26 +20,6 @@ X_labels = values["X"][0]
 U_labels = values["U"][0]
 
 
-async def new_device(port: str, **kwargs: Any):
-    """Creates a new device. Chooses appropriate device based on characteristics.
-
-    Args:
-        port (str): The port of the device.
-        **kwargs: Any
-
-    Returns:
-        Device: The new device.
-    """
-    if port.startswith("/dev/"):
-        device = SerialDevice(port, **kwargs)
-    dev_info_raw = await device._write_readline("U")
-    dev_info_raw = dev_info_raw.replace("\x00", "")
-    dev_info = dict(zip(U_labels, dev_info_raw.split()))
-    if "U" not in dev_info_raw.split()[0]:
-        print("Error: Gas Card Not in User Interface Mode")
-    return Gascard(device, dev_info, **kwargs)
-
-
 class Gascard(ABC):
     """Gascard class."""
 
@@ -64,6 +44,29 @@ class Gascard(ABC):
             "X",
             "U",
         )
+
+    @classmethod
+    async def new_device(cls, port: str, **kwargs: Any):
+        """Creates a new device. Chooses appropriate device based on characteristics.
+
+        Args:
+            port (str): The port of the device.
+            **kwargs: Any
+
+        Returns:
+            Device: The new device.
+        """
+        if port.startswith("/dev/"):
+            device = SerialDevice(port, **kwargs)
+        await device._write("U")
+        dev_info_raw = await device._readline()
+        if not dev_info_raw:
+            raise ValueError("No device found on port")
+        dev_info_raw = dev_info_raw.replace("\x00", "")
+        dev_info = dict(zip(U_labels, dev_info_raw.split()))
+        if "U" not in dev_info_raw.split()[0]:
+            print("Error: Gas Card Not in User Interface Mode")
+        return cls(device, dev_info, **kwargs)
 
     async def _get_mode(self) -> str:
         """Gets the current mode of the device.

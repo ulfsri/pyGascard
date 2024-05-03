@@ -220,7 +220,7 @@ class SerialDevice(CommDevice):
             line = bytearray()
             c = None
             while (
-                c != self.eol
+                c != self.eol and c is not None
             ):  # Keep reading until end-of-line character reached, then we know new line is started
                 c = await self._read(1)
             while True:
