@@ -31,6 +31,9 @@ class DAQ:
     async def init(cls, devs: dict[str, str]) -> "DAQ":
         """Initializes the DAQ.
 
+        Example:
+            Daq = run(DAQ.init, {'A':'/dev/ttyUSB4', 'B':'/dev/ttyUSB5'})
+
         Args:
             devs (dict[str, str]): The dictionary of devices to add. Name:Port
 
@@ -82,6 +85,12 @@ class DAQ:
 
         If id not specified, returns data from all devices.
 
+        Example:
+            df = run(Daq.get, ["Gas Type", "Gas Range", "Conc 1"], ['A', 'B'])
+            df = run(Daq.get, ["Gas Type", "Gas Range", "Conc 1"])
+            df = run(Daq.get, ["Gas Type", "Gas Range", "Conc 1"], 'B')
+            df = run(Daq.get, "Gas Type")
+
         Args:
            val (list[str]): The values to get from the device.
            id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
@@ -105,6 +114,11 @@ class DAQ:
         self, command: dict[str, str | float], id: list[str] = ""
     ) -> dict[str, None]:
         """Sets the data of the device.
+
+        Example:
+            df = run(Daq.set, {"Time Constant": 0, "Pressure Sensor Offset Cor": 904})
+            df = run(Daq.set, {"Time Constant": 0, "Pressure Sensor Offset Cor": 904}, ['A', 'B'])
+            df = run(Daq.set, {"Pressure Sensor Offset Cor": 933}, ["B"])
 
         Args:
            command (dict[str, str | float]): The commands and their relevant parameters to send to the device.
@@ -131,6 +145,11 @@ class DAQ:
         Note:
             **Device MUST be flowing zero gas BEFORE calling this function.**
 
+        Example:
+            df = run(Daq.zero, ['A', 'B'])
+            df = run(Daq.zero, 'B')
+            df = run(Daq.zero)
+
         Args:
             id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
@@ -152,6 +171,11 @@ class DAQ:
         Note:
             **Device MUST be flowing span gas BEFORE calling this function.**
 
+        Example:
+            df = run(Daq.span, 0.2126, ['A', 'B'])
+            df = run(Daq.span, 0.2677, 'B')
+            df = run(Daq.span)
+
         Args:
             val (float): Gas concentration as a fraction of full scale (0.5 to 1.2)
             id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
@@ -170,6 +194,9 @@ class DAQ:
 
     async def time_const(self, val: int, id: list[str] = "") -> None:
         """Sets the time constant of the RC filter of the device.
+
+        Example:
+            df = run(Daq.time_const, 0, ['A', 'B'])
 
         Args:
             val (int): Time constant in seconds (0 to 120)

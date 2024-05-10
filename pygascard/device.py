@@ -49,6 +49,9 @@ class Gascard(ABC):
     async def new_device(cls, port: str, **kwargs: Any) -> "Gascard":
         """Creates a new device. Chooses appropriate device based on characteristics.
 
+        Example:
+            dev = run(Gascard.new_device, "/dev/ttyUSB4")
+
         Args:
             port (str): The port of the device.
             **kwargs: Any
@@ -246,6 +249,10 @@ class Gascard(ABC):
 
         Max acquisition rate seems to be 4 Hz
 
+        Example:
+            df = run(dev.get, ["Gas Type", "Gas Range", "Conc 1"])
+            df = run(dev.get, "Gas Type")
+
         Args:
             vals (list[str]): List of names (given in values dictionary) to receive from device.
 
@@ -280,6 +287,9 @@ class Gascard(ABC):
     async def set(self, params: dict[str, str | float]) -> None:
         """General function to send to device.
 
+        Example:
+            df = run(dev.set, {"Time Constant": 0, "Pressure Sensor Offset Cor": 904})
+
         Args:
             params (dict[str, str | float]): Variable:Value pairs for each desired set
         """
@@ -295,11 +305,13 @@ class Gascard(ABC):
                 await self._set_mode(mode)
             for val in [i for i in modes if i[0] == mode]:
                 await self._device._write(f"{val[1]}{val[2]}")
-
         return
 
     async def zero(self) -> None:
         """Sets the zero reference of the device.
+
+        Example:
+            df = run(dev.zero)
 
         Note:
             **Device MUST be flowing zero gas BEFORE calling this function.**
@@ -310,17 +322,23 @@ class Gascard(ABC):
     async def span(self, val: float) -> None:
         """Sets the span reference of the device.
 
+        Example:
+            df = run(dev.span, 0.2126)
+
         Note:
             **Device MUST be flowing span gas BEFORE calling this function.**
 
         Args:
-            val (dict): Gas concentration as a fraction of full scale (0.5 to 1.2)
+            val (dict[str, float]): Gas concentration as a fraction of full scale (0.5 to 1.2)
         """
         await self.set({"Span Gas Corr Factor": val})
         return
 
     async def time_const(self, val: int) -> None:
         """Sets the time constant of the RC filter of the device.
+
+        Example:
+            df = run(dev.time_const, 0)
 
         Args:
             val (int): Time constant in seconds (0 to 120)
