@@ -46,7 +46,7 @@ class Gascard(ABC):
         )
 
     @classmethod
-    async def new_device(cls, port: str, **kwargs: Any):
+    async def new_device(cls, port: str, **kwargs: Any) -> "Gascard":
         """Creates a new device. Chooses appropriate device based on characteristics.
 
         Args:
@@ -95,11 +95,11 @@ class Gascard(ABC):
             print("Error: Invalid Mode")
         return
 
-    async def _get_val(self) -> dict:
+    async def _get_val(self) -> dict[str, str | float]:
         """Gets the current value of the device.
 
         Returns:
-            dict: Normal (N) mode dataframe
+            dict[str, str | float]: Normal (N) mode dataframe
         """
         if self._current_mode != "N":
             await self._set_mode("N")
@@ -115,11 +115,11 @@ class Gascard(ABC):
                 pass
         return dict(zip(N_labels, df))
 
-    async def _get_raw(self) -> dict:
+    async def _get_raw(self) -> dict[str, str | float]:
         """Gets the raw sensor output.
 
         Returns:
-            dict: Normal Channel (N1) mode Dataframe
+            dict[str, str | float]: Normal Channel (N1) mode Dataframe
         """
         if self._current_mode != "N1":
             await self._set_mode("N1")
@@ -135,11 +135,11 @@ class Gascard(ABC):
                 pass
         return dict(zip(N1_labels, df))
 
-    async def _get_coeff(self) -> dict:
+    async def _get_coeff(self) -> dict[str, str | float]:
         """Gets the current value of the device.
 
         Returns:
-            dict: Coefficient Channel (C1) mode dataframe
+            dict[str, str | float]: Coefficient Channel (C1) mode dataframe
         """
         if self._current_mode != "C1":
             await self._set_mode("C1")
@@ -176,13 +176,13 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.E1_labels, df))
+        return dict(zip(E1_labels, df))
 
-    async def _get_output(self) -> dict:
+    async def _get_output(self) -> dict[str, str | float]:
         """Display and Change output variables.
 
         Returns:
-            dict: Output Channel Mode (O1) dataframe
+            dict[str, str | float]: Output Channel Mode (O1) dataframe
         """
         if self._current_mode != "O1":
             await self._set_mode("O1")
@@ -196,13 +196,13 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
-        return dict(zip(self.O1_labels, df))
+        return dict(zip(O1_labels, df))
 
-    async def _get_settings(self) -> dict:
+    async def _get_settings(self) -> dict[str, str | float]:
         """Display and Change Settings.
 
         Returns:
-            dict: Settings mode (X) dataframe
+            dict[str, str | float]: Settings mode (X) dataframe
         """
         if self._current_mode != "X":
             await self._set_mode("X")
@@ -218,12 +218,13 @@ class Gascard(ABC):
                 pass
         return dict(zip(X_labels, df))
 
-    async def _get_userinterface(self) -> dict:
+    async def _get_userinterface(self) -> dict[str, str | float]:
         """View user Interface.
 
         Returns:
-            dict: User Interface mode (U) dataframe
+            dict[str, str | float]: User Interface mode (U) dataframe
         """
+        acc_gas = ["CO", "CO2", "CH4"]
         if self._current_mode != "U":
             await self._set_mode("U")
         ret = await self._device._readline()
@@ -236,18 +237,20 @@ class Gascard(ABC):
                 df[index] = float(df[index])
             except ValueError:
                 pass
+        if df[2] not in acc_gas:
+            print("Error: Gas Not Accepted")
         return dict(zip(U_labels, df))
 
-    async def get(self, vals: list) -> dict:
+    async def get(self, vals: list[str]) -> dict[str, str | float]:
         """General function to receive from device.
 
         Max acquisition rate seems to be 4 Hz
 
         Args:
-            vals (list): List of names (given in values dictionary) to receive from device.
+            vals (list[str]): List of names (given in values dictionary) to receive from device.
 
         Returns:
-            dict: Dictionary of names requested with their values
+            dict[str, str | float]: Dictionary of names requested with their values
         """
         if not isinstance(vals, list):
             vals = [vals]
@@ -274,11 +277,11 @@ class Gascard(ABC):
             output.update({names: ret[names] for names in names})
         return output
 
-    async def set(self, params: dict) -> None:
+    async def set(self, params: dict[str, str | float]) -> None:
         """General function to send to device.
 
         Args:
-            params (dict): Variable:Value pairs for each desired set
+            params (dict[str, str | float]): Variable:Value pairs for each desired set
         """
         modes = []
         for key, value in params.items():

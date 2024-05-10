@@ -11,35 +11,23 @@ from trio import run
 import trio
 import re
 from typing import Any
+import daq
 
 
 def gas_correction():
     """Calculates the gas correction factor for the gascard device.
 
     Returns:
-    -------
-    float
-        The gas correction factor.
+        float: The gas correction factor.
     """
     pass
 
 
-async def find_devices():
+async def find_devices() -> list[str]:
     """Finds all connected gascard devices.
 
-    Find all available serial ports using the `ls` command
-    Iterate through all possible baud rates
-
-    If there is an gascard device on that port (copy code form new_device that checks )
-        get what device is
-    add to dictionary with port name and type of device on port (if no device, don't add to dictionary)
-    return dictionary
-
-
     Returns:
-    -------
-    list
-        A list of all connected gascard devices.
+        list[str]: A list of all connected gascard devices.
     """
     # Get the list of available serial ports
     result = glob.glob("/dev/ttyUSB*")
@@ -54,36 +42,26 @@ async def find_devices():
     return devices
 
 
-async def is_gascard_device(port, id: str = "A", **kwargs: Any):
+async def is_gascard_device(port: str, **kwargs: Any) -> bool:
     """Check if the given port is an gascard device.
 
     Parameters:
-    ----------
-    port : str
-        The name of the serial port.
+        port (str): The name of the serial port.
+        id (str): The device ID. Default is "A".
 
     Returns:
-    -------
-    bool
-        True if the port is an gascard device, False otherwise.
+        bool: True if the port is an gascard device, False otherwise.
     """
+    acc_gas = ["CO", "CO2", "CH4"]
     if port.startswith("/dev/"):
         device = SerialDevice(port, **kwargs)
-    dev_info_raw = await device._write_readline("X")
+    dev_info_raw = await device._write_readline("U")
     if not dev_info_raw:
         return False
-    X_labels = [
-        "Mode",
-        "Firmware Version",
-        "Serial Number",
-        "Config Register",
-        "Frequency",
-        "Time Constant",
-        "Switches State",
-    ]
+    U_labels = ["Mode", "Gas Range", "Gas Type", "Background Gas", "Display selection"]
     dev_info_raw = dev_info_raw.replace("\x00", "")
-    dev_info = dict(zip(X_labels, dev_info_raw.split()))
-    if dev_info.get("Serial Number", ""):
+    dev_info = dict(zip(U_labels, dev_info_raw.split()))
+    if dev_info.get("Gas Type", "") in acc_gas:
         return (True, "Gascard")
     return False
 
@@ -92,15 +70,42 @@ def get_device_type(port):
     """Get the device type for the given port.
 
     Parameters:
-    ----------
-    port : str
-        The name of the serial port.
+        port (str): The name of the serial port.
 
     Returns:
-    -------
-    dict
-        A dictionary containing the port name and the type of device on the port.
+        dict[str, str]: A dictionary containing the port name and the type of device on the port.
     """
     # Implement the logic to get the device information
     # You can use any method that suits your needs
     pass
+
+
+async def diagnose():
+    """Run various functions to ensure the device is functioning properly."""
+    get_code1 = "Temperature"
+    get_code2 = "Zero Pot"
+    set_code = "Time Constant"
+    devs = await find_devices()
+    print(f"Devices: {devs}")
+    Daq = await daq.DAQ.init({"A": list(devs.keys())[0]})
+    print(f"Initiate DAQ with A: {await Daq.dev_list()}")
+    await Daq.add_device({"B": list(devs.keys())[1]})
+    print(f"Add device B: {await Daq.dev_list()}")
+    print(f"Get data (list): {await Daq.get([get_code1, get_code2])}")
+    temp = await Daq.get(set_code, "B")
+    print(f"Get Data (id, no list): Temp = {temp}")
+    await Daq.remove_device(["A"])
+    print(f"Remove device A: {await Daq.dev_list()}")
+    print(f"Set data (with id).")
+    await Daq.set({set_code: (temp["B"][set_code] + 1)}, "B")
+    print(f"Get data: {await Daq.get([set_code])}")
+    print(f"Set data (without id).")
+    await Daq.set({set_code: temp["B"][set_code]})
+    print(f"Get data: {await Daq.get([set_code])}")
+    await Daq.add_device({"C": list(devs.keys())[0]})
+    print(f"Add device C: {await Daq.dev_list()}")
+    print(f"Convenience Function.")
+    await Daq.time_const((temp["B"][set_code] + 1))
+    print(f"Get data: {await Daq.get([set_code])}")
+    await Daq.time_const((temp["B"][set_code]))
+    print(f"Get data: {await Daq.get([set_code])}")

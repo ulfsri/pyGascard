@@ -28,11 +28,11 @@ class DAQ:
         return
 
     @classmethod
-    async def init(cls, devs: dict) -> "DAQ":
+    async def init(cls, devs: dict[str, str]) -> "DAQ":
         """Initializes the DAQ.
 
         Args:
-            devs (dict): The dictionary of devices to add. Name:Port
+            devs (dict[str, str]): The dictionary of devices to add. Name:Port
 
         Returns:
             DAQ: The DAQ object.
@@ -41,11 +41,11 @@ class DAQ:
         await daq.add_device(devs)
         return daq
 
-    async def add_device(self, devs: dict) -> None:
+    async def add_device(self, devs: dict[str, str]) -> None:
         """Creates and initializes the devices.
 
         Args:
-            devs (dict): The dictionary of devices to add. Name:Port
+            devs (dict[str, str]): The dictionary of devices to add. Name:Port
         """
         if isinstance(devs, str):
             devs = devs.split()
@@ -56,36 +56,38 @@ class DAQ:
             dev_list.update({name: dev})
         return
 
-    async def remove_device(self, name: list) -> None:
-        """Creates and initializes the devices.
+    async def remove_device(self, name: list[str]) -> None:
+        """Removes the devices.
 
         Args:
-            name (list): The list of devices to remove.
+            name (list[str]): The list of names of devices to remove.
         """
         for n in name:
             await dev_list[n]._device.close()
             del dev_list[n]
         return
 
-    async def dev_list(self) -> dict:
+    async def dev_list(self) -> dict[str, device.Gascard]:
         """Displays the list of devices.
 
         Returns:
-            dict: The list of devices and their objects.
+            dict[str, device.Gascard]: The list of devices and their objects.
         """
         return dev_list
 
-    async def get(self, val: list = "", id: list = "") -> dict:
+    async def get(
+        self, val: list[str] = "", id: list[str] = ""
+    ) -> dict[str, str | float]:
         """Gets the data from the device.
 
         If id not specified, returns data from all devices.
 
         Args:
-           val (list): The values to get from the device.
-           id (list): The IDs of the devices to read from. If not specified, returns data from all devices.
+           val (list[str]): The values to get from the device.
+           id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
 
         Returns:
-            dict: The dictionary of devices with the data for each value.
+            dict[str, str | float]: The dictionary of devices with the data for each value.
         """
         ret_dict = {}
         if isinstance(val, str):
@@ -99,15 +101,17 @@ class DAQ:
             ret_dict.update({i: await dev_list[i].get(val)})
         return ret_dict
 
-    async def set(self, command: dict, id: str = "") -> None:
+    async def set(
+        self, command: dict[str, str | float], id: list[str] = ""
+    ) -> dict[str, None]:
         """Sets the data of the device.
 
         Args:
-           command (dict): The commands and their relevant parameters to send to the device.
-           id (list): The IDs of the devices to read from. If not specified, returns data from all devices.
+           command (dict[str, str | float]): The commands and their relevant parameters to send to the device.
+           id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
 
         Returns:
-            dict: The dictionary of devices with the data for each value.
+            dict[str, None]: The dictionary of devices changed.
         """
         ret_dict = {}
         if isinstance(command, str):
@@ -121,14 +125,14 @@ class DAQ:
             ret_dict.update({i: await dev_list[i].set(command)})
         return ret_dict
 
-    async def zero(self, id: str = "") -> None:
+    async def zero(self, id: list[str] = "") -> None:
         """Sets the zero reference of the device.
 
         Note:
             **Device MUST be flowing zero gas BEFORE calling this function.**
 
         Args:
-            id (list): The IDs of the devices to read from. If not specified, returns data from all devices.
+            id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
         ret_dict = {}
         if not id:
@@ -142,15 +146,15 @@ class DAQ:
             ret_dict.update({i: await dev_list[i].set({"Zero Gas Corr Factor": ""})})
         return ret_dict
 
-    async def span(self, val: float, id: str = "") -> None:
+    async def span(self, val: float, id: list[str] = "") -> None:
         """Sets the span reference of the device.
 
         Note:
             **Device MUST be flowing span gas BEFORE calling this function.**
 
         Args:
-            val (dict): Gas concentration as a fraction of full scale (0.5 to 1.2)
-            id (list): The IDs of the devices to read from. If not specified, returns data from all devices.
+            val (float): Gas concentration as a fraction of full scale (0.5 to 1.2)
+            id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
         ret_dict = {}
         if not id:
@@ -164,22 +168,22 @@ class DAQ:
             ret_dict.update({i: await dev_list[i].set({"Span Gas Corr Factor": val})})
         return ret_dict
 
-    async def time_const(self, val: int, id: str = "") -> None:
+    async def time_const(self, val: int, id: list[str] = "") -> None:
         """Sets the time constant of the RC filter of the device.
 
         Args:
             val (int): Time constant in seconds (0 to 120)
-            id (list): The IDs of the devices to read from. If not specified, returns data from all devices.
+            id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
         ret_dict = {}
         if not id:
             for dev in dev_list:
-                ret_dict.update({dev: await dev_list[i].set({"Time Constant": val})})
+                await dev_list[dev].set({"Time Constant": val})
         if isinstance(id, str):
             id = id.split()
         for i in id:
-            ret_dict.update({i: await dev_list[i].set({"Time Constant": val})})
-        return ret_dict
+            await dev_list[i].set({"Time Constant": val})
+        return
 
 
 class DAQLogging:
