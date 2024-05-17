@@ -244,7 +244,7 @@ class Gascard(ABC):
             print("Error: Gas Not Accepted")
         return dict(zip(U_labels, df))
 
-    async def get(self, vals: list[str]) -> dict[str, str | float]:
+    async def get(self, vals: list[str] = "") -> dict[str, str | float]:
         """General function to receive from device.
 
         Max acquisition rate seems to be 4 Hz
@@ -259,6 +259,8 @@ class Gascard(ABC):
         Returns:
             dict[str, str | float]: Dictionary of names requested with their values
         """
+        if not vals:
+            return await self._get_val()
         if not isinstance(vals, list):
             vals = [vals]
         modes = []
