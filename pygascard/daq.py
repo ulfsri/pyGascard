@@ -4,6 +4,7 @@ Author: Grayson Bellamy
 Date: 2024-01-07
 """
 
+from typing import Any
 import device
 from trio import run
 
@@ -28,14 +29,14 @@ class DAQ:
         return
 
     @classmethod
-    async def init(cls, devs: dict[str, str]) -> "DAQ":
+    async def init(cls, devs: dict[str, str | device.Gascard]) -> "DAQ":
         """Initializes the DAQ.
 
         Example:
             Daq = run(DAQ.init, {'A':'/dev/ttyUSB4', 'B':'/dev/ttyUSB5'})
 
         Args:
-            devs (dict[str, str]): The dictionary of devices to add. Name:Port
+            devs (dict[str, str | device.Gascard]): The dictionary of devices to add. Name:Port
 
         Returns:
             DAQ: The DAQ object.
@@ -44,19 +45,26 @@ class DAQ:
         await daq.add_device(devs)
         return daq
 
-    async def add_device(self, devs: dict[str, str]) -> None:
+    async def add_device(
+        self, devs: dict[str, str | device.Gascard], **kwargs: Any
+    ) -> None:
         """Creates and initializes the devices.
 
         Args:
-            devs (dict[str, str]): The dictionary of devices to add. Name:Port
+            devs (dict[str, str | device.Gascard]): The dictionary of devices to add. Name:Port
+            **kwargs: Any
         """
-        if isinstance(devs, str):
-            devs = devs.split()
-            # This works if the string is the format "Name Port"
-            devs = {devs[0]: devs[1]}
-        for name in devs:
-            dev = await device.Gascard.new_device(devs[name])
-            dev_list.update({name: dev})
+        if devs:
+            if isinstance(devs, str):
+                devs = devs.split()
+                # This works if the string is the format "Name Port"
+                devs = {devs[0]: devs[1]}
+            for name in devs:
+                if isinstance(devs[name], str):
+                    dev = await device.Gascard.new_device(devs[name])
+                    dev_list.update({name: dev})
+                elif isinstance(devs[name], device.Gascard):
+                    dev_list.update({name: devs[name]})
         return
 
     async def remove_device(self, name: list[str]) -> None:

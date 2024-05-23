@@ -6,7 +6,7 @@ Date: 2024-05-03
 
 import glob
 from comm import SerialDevice
-from device import Gascard
+import device
 from trio import run
 import trio
 import re
@@ -23,11 +23,11 @@ def gas_correction():
     pass
 
 
-async def find_devices() -> list[str]:
+async def find_devices() -> dict[str, device.Gascard]:
     """Finds all connected gascard devices.
 
     Returns:
-        list[str]: A list of all connected gascard devices.
+        dict[str, device.Gascard]: A dictionary of all connected Gascard devices. Port:Object
     """
     # Get the list of available serial ports
     result = glob.glob("/dev/ttyUSB*")
@@ -42,28 +42,23 @@ async def find_devices() -> list[str]:
     return devices
 
 
-async def is_gascard_device(port: str, **kwargs: Any) -> bool:
+async def is_gascard_device(
+    port: str, **kwargs: Any
+) -> bool | tuple[bool, device.Gascard]:
     """Check if the given port is an gascard device.
 
     Parameters:
         port (str): The name of the serial port.
-        id (str): The device ID. Default is "A".
+        **kwargs: Any additional keyword arguments.
 
     Returns:
         bool: True if the port is an gascard device, False otherwise.
+        device.Gascard: The gascard device object.
     """
-    acc_gas = ["CO", "CO2", "CH4"]
-    if port.startswith("/dev/"):
-        device = SerialDevice(port, **kwargs)
-    dev_info_raw = await device._write_readline("U")
-    if not dev_info_raw:
+    try:
+        return (True, await device.Gascard.new_device(port, **kwargs))
+    except ValueError:
         return False
-    U_labels = ["Mode", "Gas Range", "Gas Type", "Background Gas", "Display selection"]
-    dev_info_raw = dev_info_raw.replace("\x00", "")
-    dev_info = dict(zip(U_labels, dev_info_raw.split()))
-    if dev_info.get("Gas Type", "") in acc_gas:
-        return (True, "Gascard")
-    return False
 
 
 def get_device_type(port):

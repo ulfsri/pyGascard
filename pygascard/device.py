@@ -68,7 +68,8 @@ class Gascard(ABC):
         dev_info_raw = dev_info_raw.replace("\x00", "")
         dev_info = dict(zip(U_labels, dev_info_raw.split()))
         if "U" not in dev_info_raw.split()[0]:
-            print("Error: Gas Card Not in User Interface Mode")
+            # print("Error: Gas Card Not in User Interface Mode")
+            raise ValueError("Gas Card Not in User Interface Mode")
         return cls(device, dev_info, **kwargs)
 
     async def _get_mode(self) -> str:
@@ -82,7 +83,8 @@ class Gascard(ABC):
         if mode in self._MODES:
             self.current_mode = mode
         else:
-            print("Error: Invalid Mode")
+            # print("Error: Invalid Mode")
+            raise ValueError("Invalid Mode")
         return mode
 
     async def _set_mode(self, mode: str) -> None:
@@ -95,7 +97,8 @@ class Gascard(ABC):
             await self._device._write(mode)
             self._current_mode = mode
         else:
-            print("Error: Invalid Mode")
+            # print("Error: Invalid Mode")
+            raise ValueError("Invalid Mode")
         return
 
     async def _get_val(self) -> dict[str, str | float]:
@@ -110,7 +113,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "N" not in df[0]:
-            print("Error: Gas Card Not in Normal Mode")
+            # print("Error: Gas Card Not in Normal Mode")
+            raise ValueError("Gas Card Not in Normal Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -130,7 +134,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "N1" not in df[:2]:
-            print("Error: Gas Card Not in Normal Mode")
+            # print("Error: Gas Card Not in Normal Mode")
+            raise ValueError("Gas Card Not in Normal Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -150,7 +155,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "C1" not in df[:2]:
-            print("Error: Gas Card Not in Coefficient Mode")
+            # print("Error: Gas Card Not in Coefficient Mode")
+            raise ValueError("Gas Card Not in Coefficient Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -173,7 +179,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "E" not in df[0]:
-            print("Error: Gas Card Not in Environmental Mode")
+            # print("Error: Gas Card Not in Environmental Mode")
+            raise ValueError("Gas Card Not in Environmental Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -193,7 +200,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "O1" not in df[0:2]:
-            print("Error: Gas Card Not in Output Mode")
+            # print("Error: Gas Card Not in Output Mode")
+            raise ValueError("Gas Card Not in Output Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -213,7 +221,8 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "X" not in df[0]:
-            print("Error: Gas Card Not in Settings Mode")
+            # print("Error: Gas Card Not in Settings Mode")
+            raise ValueError("Gas Card Not in Settings Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
@@ -234,14 +243,16 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "U" not in df[0]:
-            print("Error: Gas Card Not in User Interface Mode")
+            # print("Error: Gas Card Not in User Interface Mode")
+            raise ValueError("Gas Card Not in User Interface Mode")
         for index in range(len(df)):
             try:
                 df[index] = float(df[index])
             except ValueError:
                 pass
         if df[2] not in acc_gas:
-            print("Error: Gas Not Accepted")
+            # print("Error: Gas Not Accepted")
+            raise ValueError("Gas Not Accepted")
         return dict(zip(U_labels, df))
 
     async def get(self, vals: list[str] = "") -> dict[str, str | float]:
