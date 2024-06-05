@@ -7,7 +7,8 @@ Date: 2024-05-03
 import glob
 from comm import SerialDevice
 import device
-from trio import run
+from trio import open_nursery
+from trio_asyncio import run
 import trio
 import re
 from typing import Any
@@ -23,6 +24,22 @@ def gas_correction():
     pass
 
 
+async def update_dict_dev(devices, port) -> dict[str, dict[str, str | float]]:
+    """Updates the dictionary with the new values.
+
+    Args:
+        devices (dict): The dictionary of devices.
+        port (str): The name of the serial port.
+
+    Returns:
+        dict: The dictionary of devices with the updated values.
+    """
+    dev = await is_gascard_device(port)
+    if dev:
+        devices.update({port: dev[1]})
+    return devices
+
+
 async def find_devices() -> dict[str, device.Gascard]:
     """Finds all connected gascard devices.
 
@@ -34,11 +51,9 @@ async def find_devices() -> dict[str, device.Gascard]:
 
     # Iterate through the output and check for gascard devices
     devices = {}
-    for port in result:
-        # Check if the port is an gascard device
-        dev = await is_gascard_device(port)
-        if dev:
-            devices.update({port: dev[1]})
+    async with open_nursery() as g:
+        for port in result:
+            g.start_soon(update_dict_dev, devices, port)
     return devices
 
 
@@ -78,8 +93,8 @@ def get_device_type(port):
 async def diagnose():
     """Run various functions to ensure the device is functioning properly."""
     get_code1 = "Temperature"
-    get_code2 = "Zero Pot"
-    set_code = "Time Constant"
+    get_code2 = "Zero_Pot"
+    set_code = "Time_Constant"
     devs = await find_devices()
     print(f"Devices: {devs}")
     Daq = await daq.DAQ.init({"A": list(devs.keys())[0]})
@@ -100,7 +115,7 @@ async def diagnose():
     await Daq.add_device({"C": list(devs.keys())[0]})
     print(f"Add device C: {await Daq.dev_list()}")
     print(f"Convenience Function.")
-    await Daq.time_const((temp["B"][set_code] + 1))
+    await Daq.time_const(temp["B"][set_code] + 1)
     print(f"Get data: {await Daq.get([set_code])}")
-    await Daq.time_const((temp["B"][set_code]))
+    await Daq.time_const(temp["B"][set_code])
     print(f"Get data: {await Daq.get([set_code])}")

@@ -2,23 +2,23 @@
     "values" : {
         "N": [[
             "Mode",
-            "Conc 1",
-            "Conc 2",
-            "Conc 3",
-            "Conc 4",
-            "Conc 5",
+            "Conc_1",
+            "Conc_2",
+            "Conc_3",
+            "Conc_4",
+            "Conc_5",
             "Temperature",
             "Pressure",
             "Humidity"
         ], ["", "", "", "", "", "", "", "", ""]],
         "N1": [[
             "Mode",
-            "Sample Channel",
-            "Reference Channel",
-            "Voltage PWM Value",
-            "Conc",
-            "Sensor Temperature",
-            "Sensor Pressure"
+            "Sample_Channel",
+            "Reference_Channel",
+            "Voltage_PWM_Value",
+            "Sensor_Conc",
+            "Sensor_Temp",
+            "Sensor_Press"
         ], ["", "", "", "o", "", "", ""]],
         "C1": [[
             "Mode",
@@ -26,50 +26,50 @@
             "CoeffB",
             "CoeffC",
             "CoeffD",
-            "Zero Gas Corr Factor",
-            "Span Gas Corr Factor",
-            "Zero Pot",
-            "Span Pot",
-            "Sam. Pot",
-            "Ref. Pot"
+            "Zero_Gas_Corr_Factor",
+            "Span_Gas_Corr_Factor",
+            "Zero_Pot",
+            "Span_Pot",
+            "Sam_Pot",
+            "Ref_Pot"
         ], ["", "h", "i", "j", "k", "z", "s", "", "", "p", "p"]],
         "E1": [[
             "Mode",
-            "Zero Cal Temp",
-            "Span Cal Temp",
-            "Pressure Sensor Slope Cor",
-            "Pressure Sensor Offset Cor",
-            "Press 4th Coeff",
-            "Press 3rd Coeff",
-            "Press 2nd Coeff",
-            "Press 1st Coeff",
-            "Zero Temp Correction Value",
-            "Span Temp Correction Value"
+            "Zero_Cal_Temp",
+            "Span_Cal_Temp",
+            "Press_Sensor_Slope_Cor",
+            "Press_Sensor_Offset_Cor",
+            "Press_4th_Coeff",
+            "Press_3rd_Coeff",
+            "Press_2nd_Coeff",
+            "Press_1st_Coeff",
+            "Zero_Temp_Correction_Value",
+            "Span_Temp_Correction_Value"
         ], ["", "", "", "m", "x", "c", "d", "e", "g", "z", "s"]],
         "O1": [[
             "Mode",
-            "PWM Voltage Output Slope Corr",
-            "PWM Voltage Output Offset Corr",
-            "PWM Voltage Value",
-            "PWM Current Output Slope Corr",
-            "PWM Current Output Offset Corr",
-            "PWM Current Value"
+            "PWM_Voltage_Output_Slope_Corr",
+            "PWM_Voltage_Output_Offset_Corr",
+            "PWM_Voltage_Value",
+            "PWM_Current_Output_Slope_Corr",
+            "PWM_Current_Output_Offset_Corr",
+            "PWM_Current_Value"
         ], ["", "m", "x", "", "a", "b", ""]],
         "X": [[
             "Mode",
-            "Firmware Version",
-            "Serial Number",
-            "Config Register",
+            "Firmware_Version",
+            "Serial_Number",
+            "Config_Register",
             "Frequency",
-            "Time Constant",
-            "Switches State"
+            "Time_Constant",
+            "Switches_State"
         ], ["", "", "", "", "f", "t", ""]],
         "U": [[
             "Mode",
-            "Gas Range",
-            "Gas Type",
-            "Background Gas",
-            "Display Selection"
+            "Gas_Range",
+            "Gas_Type",
+            "Background_Gas",
+            "Display_Selection"
         ], ["", "", "", "", "d"]]
     }
 

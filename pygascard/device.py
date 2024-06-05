@@ -273,7 +273,7 @@ class Gascard(ABC):
         if not vals:
             return await self._get_val()
         if not isinstance(vals, list):
-            vals = [vals]
+            vals = vals.split()
         modes = []
         output = {}
         for val in vals:

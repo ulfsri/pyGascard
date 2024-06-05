@@ -116,6 +116,15 @@ class SerialDevice(CommDevice):
         }
         self.isOpen = False
         self.ser_devc = SerialStream(**self.serial_setup)
+        self.codes_list = [
+            bytearray("N ", "ascii"),
+            bytearray("N1 ", "ascii"),
+            bytearray("C1 ", "ascii"),
+            bytearray("E1 ", "ascii"),
+            bytearray("O1 ", "ascii"),
+            bytearray("X ", "ascii"),
+            bytearray("U ", "ascii"),
+        ]
 
     async def _read(self, len: int = 1) -> ByteString:
         """Reads the serial communication.
@@ -160,10 +169,18 @@ class SerialDevice(CommDevice):
             self.isOpen = True
             line = bytearray()
             c = None
-            while (
-                c != self.eol and c is not None
-            ):  # Keep reading until end-of-line character reached, then we know new line is started
+            while True:  # Keep reading until end-of-line character reached, then we know new line is started
                 c = await self._read(1)
+                if c is None:
+                    break
+                line += c
+                if c == self.eol:
+                    line = bytearray()
+                    break
+                if (
+                    line in self.codes_list
+                ):  # This is a special case where the device sends a command back
+                    break
             while True:
                 c = None
                 with trio.move_on_after(self.timeout / 1000):
