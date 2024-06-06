@@ -319,6 +319,15 @@ class DAQLogging:
         self.qout = None
         return
 
+    def _key_func(self, x):
+        if x == "Request Sent":
+            return chr(0)
+        if x == "Response Received":
+            return chr(1)
+        if x.lower() == "mode":
+            return chr(2)
+        return x
+
     async def create_table(self, dict, conn):
         """Creates a table in the database and adds columns for each key in the dictionary.
 
@@ -332,7 +341,8 @@ class DAQLogging:
                     "CREATE TABLE IF NOT EXISTS gascard (Time timestamp, Device text, PRIMARY KEY (Time, Device))"
                 )
             )
-            for key in dict:
+            keys = sorted(dict.keys(), key=self._key_func)
+            for key in keys:
                 data_type = "text"
                 if key == "Request Sent" or key == "Response Received":
                     data_type = "timestamp"
