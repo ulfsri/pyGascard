@@ -4,13 +4,13 @@ Author: Grayson Bellamy
 Date: 2024-01-05
 """
 
-from typing import Optional
-from collections.abc import ByteString
-
 from abc import ABC, abstractmethod
+from collections.abc import ByteString
+from typing import Optional
 
-import trio
-from trio_serial import Parity, SerialStream, StopBits
+import anyio
+from anyserial import SerialStream
+from anyserial.abstract import Parity, StopBits
 
 
 class CommDevice(ABC):
@@ -111,8 +111,8 @@ class SerialDevice(CommDevice):
             "bytesize": databits,
             "parity": parity,
             "stopbits": stopbits,
-            "xonxoff": xonxoff,
-            "rtscts": rtscts,
+            # "xonxoff": xonxoff,
+            # "rtscts": rtscts,
         }
         self.isOpen = False
         self.ser_devc = SerialStream(**self.serial_setup)
@@ -137,10 +137,10 @@ class SerialDevice(CommDevice):
         """
         if not self.isOpen:
             async with self.ser_devc:
-                with trio.move_on_after(self.timeout / 1000):
+                with anyio.move_on_after(self.timeout / 1000):
                     return await self.ser_devc.receive_some(len)
         else:
-            with trio.move_on_after(self.timeout / 1000):
+            with anyio.move_on_after(self.timeout / 1000):
                 return await self.ser_devc.receive_some(len)
         return None
 
@@ -152,10 +152,10 @@ class SerialDevice(CommDevice):
         """
         if not self.isOpen:
             async with self.ser_devc:
-                with trio.move_on_after(self.timeout / 1000):
+                with anyio.move_on_after(self.timeout / 1000):
                     await self.ser_devc.send_all(command.encode("ascii") + self.eol)
         else:
-            with trio.move_on_after(self.timeout / 1000):
+            with anyio.move_on_after(self.timeout / 1000):
                 await self.ser_devc.send_all(command.encode("ascii") + self.eol)
         return None
 
@@ -183,7 +183,7 @@ class SerialDevice(CommDevice):
                     break
             while True:
                 c = None
-                with trio.move_on_after(self.timeout / 1000):
+                with anyio.move_on_after(self.timeout / 1000):
                     c = await self._read(1)
                     line += c
                     if c == self.eol:
@@ -210,7 +210,7 @@ class SerialDevice(CommDevice):
             await self._flush()
             while True:
                 c = None
-                with trio.move_on_after(self.timeout / 1000):
+                with anyio.move_on_after(self.timeout / 1000):
                     c = await self._read(1)
                     if c == self.eol:
                         arr_line.append(line.decode("ascii"))
@@ -242,7 +242,7 @@ class SerialDevice(CommDevice):
                 c = await self._read(1)
             while True:
                 c = None
-                with trio.move_on_after(self.timeout / 1000):
+                with anyio.move_on_after(self.timeout / 1000):
                     c = await self._read(1)
                     if c == self.eol:
                         break

@@ -1,12 +1,31 @@
-from typing import Any
+"""Gascard device class.
+
+Raises:
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+    ValueError: _description_
+
+Returns:
+    _type_: _description_
+"""
 
 import json
 import re
 from abc import ABC
+from typing import Any
 
+import anyio
+from anyio import run
 from comm import SerialDevice
-import trio
-from trio import run
 
 with open("codes.json") as f:
     codes = json.load(f)

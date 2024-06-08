@@ -5,14 +5,14 @@ Date: 2024-05-03
 """
 
 import glob
-from comm import SerialDevice
-import device
-from trio import open_nursery
-from trio_asyncio import run
-import trio
 import re
 from typing import Any
+
+import anyio
 import daq
+import device
+from anyio import create_task_group, run
+from comm import SerialDevice
 
 
 def gas_correction():
@@ -51,7 +51,7 @@ async def find_devices() -> dict[str, device.Gascard]:
 
     # Iterate through the output and check for gascard devices
     devices = {}
-    async with open_nursery() as g:
+    async with create_task_group() as g:
         for port in result:
             g.start_soon(update_dict_dev, devices, port)
     return devices

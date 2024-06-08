@@ -4,18 +4,17 @@ Author: Grayson Bellamy
 Date: 2024-01-07
 """
 
-from typing import Any
-import device
-from trio import open_nursery
-from datetime import datetime
 import csv
 import time
 import warnings
-import trio_asyncio
-import asyncpg
-from trio_asyncio import run
-from threading import Thread
+from datetime import datetime
 from queue import Queue
+from threading import Thread
+from typing import Any
+
+import asyncpg
+import device
+from anyio import create_task_group, run
 
 warnings.filterwarnings("always")
 
@@ -145,12 +144,12 @@ class DAQ:
         if val and isinstance(val, str):
             val = [val]
         if not id:
-            async with open_nursery() as g:
+            async with create_task_group() as g:
                 for dev in dev_list:
                     g.start_soon(self.update_dict_get, ret_dict, dev, val)
         if id and isinstance(id, str):
             id = id.split()
-        async with open_nursery() as g:
+        async with create_task_group() as g:
             for i in id:
                 g.start_soon(self.update_dict_get, ret_dict, i, val)
         return ret_dict
@@ -190,12 +189,12 @@ class DAQ:
         if isinstance(command, str):
             command = command.split()
         if not id:
-            async with open_nursery() as g:
+            async with create_task_group() as g:
                 for dev in dev_list:
                     g.start_soon(self.update_dict_set, ret_dict, dev, command)
         if isinstance(id, str):
             id = id.split()
-        async with open_nursery() as g:
+        async with create_task_group() as g:
             for i in id:
                 g.start_soon(self.update_dict_set, ret_dict, i, command)
         return ret_dict
@@ -278,14 +277,17 @@ class AsyncPG:
     """Async context manager for connecting to a PostgreSQL database using asyncpg."""
 
     def __init__(self, **kwargs):
+        """Initializes the AsyncPG object."""
         self.conn = None
         self.kwargs = kwargs
 
     async def __aenter__(self):
+        """Enters the async context manager and connects to the database."""
         self.conn = await asyncpg.connect(**self.kwargs)
         return self.conn
 
     async def __aexit__(self, exc_type, exc, tb):
+        """Exits the async context manager and closes the connection to the database."""
         await self.conn.close()
         self.conn = None
 
@@ -335,11 +337,9 @@ class DAQLogging:
             dict (dict): The dictionary containing the data to be added as columns.
             conn: The connection object to the database.
         """
-        async with trio_asyncio.aio_as_trio(conn.transaction()):
-            await trio_asyncio.aio_as_trio(
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS gascard (Time timestamp, Device text, PRIMARY KEY (Time, Device))"
-                )
+        async with conn.transaction():
+            await conn.execute(
+                "CREATE TABLE IF NOT EXISTS gascard (Time timestamp, Device text, PRIMARY KEY (Time, Device))"
             )
             keys = sorted(dict.keys(), key=self._key_func)
             for key in keys:
@@ -348,15 +348,12 @@ class DAQLogging:
                     data_type = "timestamp"
                 elif isinstance(dict[key], float):
                     data_type = "float"
-                await trio_asyncio.aio_as_trio(
-                    conn.execute(
-                        f"ALTER TABLE gascard ADD COLUMN IF NOT EXISTS {''.join(key.split()).lower()} {data_type}"
-                    )
+                await conn.execute(
+                    f"ALTER TABLE gascard ADD COLUMN IF NOT EXISTS {''.join(key.split()).lower()} {data_type}"
                 )
-            await trio_asyncio.aio_as_trio(
-                conn.execute(
-                    "SELECT create_hypertable('gascard', by_range('time'), if_not_exists => TRUE)"
-                )  # create the timescaledb hypertable
+            await conn.execute(
+                "SELECT create_hypertable('gascard', by_range('time'), if_not_exists => TRUE)"
+                # create the timescaledb hypertable
             )
 
     async def insert_data(self, dict, conn):
@@ -366,19 +363,16 @@ class DAQLogging:
             dict (dict): The dictionary containing the data to be added.
             conn: The connection object to the database.
         """
-        async with trio_asyncio.aio_as_trio(conn.transaction()):
+        async with conn.transaction():
             for dev in dict:
-                await trio_asyncio.aio_as_trio(
-                    conn.execute(
-                        "INSERT INTO gascard ("
-                        + ", ".join(
-                            [key.lower().replace(" ", "") for key in dev.keys()]
-                        )
-                        + ") VALUES ("
-                        + ", ".join(["$" + str(i + 1) for i in range(len(dev))])
-                        + ")",
-                        *dev.values(),
-                    )  # We could optimize this by using a single insert statement for all devices. We would have to make sure that the order of the values is the same for all devices and it would only work if they all have the same fields. That is, it wouldn't work for the flowmeter in our case because it has RH values
+                await conn.execute(
+                    "INSERT INTO gascard ("
+                    + ", ".join([key.lower().replace(" ", "") for key in dev.keys()])
+                    + ") VALUES ("
+                    + ", ".join(["$" + str(i + 1) for i in range(len(dev))])
+                    + ")",
+                    *dev.values(),
+                    # We could optimize this by using a single insert statement for all devices. We would have to make sure that the order of the values is the same for all devices and it would only work if they all have the same fields. That is, it wouldn't work for the flowmeter in our case because it has RH values
                 )
 
     async def update_dict_log(
@@ -387,9 +381,8 @@ class DAQLogging:
         """Updates the dictionary with the new values.
 
         Args:
-            ret_dict (dict): The dictionary of devices to update.
-            dev (str): The name of the device.
-            val (list): The values to get from the device.
+            Daq (DAQ): The DAQ object to take readings from.
+            qualities (list): The list of qualities to log.
 
         Returns:
             dict: The dictionary of devices with the updated values.
@@ -416,7 +409,7 @@ class DAQLogging:
             rate = self.rate
         database = self.database
         rows = []
-        async with trio_asyncio.aio_as_trio(database) as conn:
+        async with database as conn:
             self.df = await self.Daq.get(self.qualities)
             unique = dict()
             for dev in self.df:
@@ -451,7 +444,7 @@ class DAQLogging:
                     if write_async:
                         nurse_time = time.time_ns()
                         # open_nursery
-                        async with open_nursery() as g:
+                        async with create_task_group() as g:
                             # insert_data from the previous iteration
                             g.start_soon(self.insert_data, rows, conn)
                             # get
@@ -520,8 +513,13 @@ class DAQLogging:
         self.qin = qin
         qout = Queue()
         self.qout = qout
+        backend_options = {"use_uvloop": True}
         # Start the logging process in a thread
-        t = Thread(target=run, args=(self.logging, write_async, duration, rate))
+        t = Thread(
+            target=run,
+            args=(self.logging, write_async, duration, rate),
+            kwargs={"backend_options": backend_options},
+        )
         t.start()
         # Return the queue
         return (qin, qout)
