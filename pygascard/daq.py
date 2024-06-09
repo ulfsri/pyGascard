@@ -4,7 +4,6 @@ Author: Grayson Bellamy
 Date: 2024-01-07
 """
 
-import csv
 import time
 import warnings
 from datetime import datetime
@@ -431,9 +430,9 @@ class DAQLogging:
                 # if not, continue logging
                 if time.time_ns() / 1e9 - (reps * 1 / rate + start / 1e9) >= 1 / rate:
                     # Check if something is in the queue
-                    print(
-                        f"Difference between readings: {(time.time_ns() - prev) / 1e9} s"
-                    )
+                    # print(
+                    #     f"Difference between readings: {(time.time_ns() - prev) / 1e9} s"
+                    # )
                     # if (
                     #     abs(time.time_ns() / 1e9 - reps * 1 / rate - start / 1e9)
                     #     > 1.003 / rate
@@ -473,17 +472,15 @@ class DAQLogging:
                                 **self.df[dev],
                             }
                         )
-                    print(f"Process took {(time2 - time1) / 1e6} ms")
+                    # print(f"Process took {(time2 - time1) / 1e6} ms")
                     time3 = time.time_ns()
                     if not write_async:
                         await self.insert_data(
                             rows, conn
                         )  # This takes a little bit (~8 ms). I think we should run this in a nursery with the next .get() call. That means that we will have to wait until the next loop to submit the data from the previous iteration.
                     time4 = time.time_ns()
-                    print(f"Insert took {(time4 - time3) / 1e6} ms")
-                    print(
-                        f"Time with nursery is {write_async}: {(time4 - nurse_time) / 1e6} ms"
-                    )
+                    # print(f"Insert took {(time4 - time3) / 1e6} ms")
+                    print(f"Time with nursery is {(time4 - nurse_time) / 1e6} ms")
                     reps += 1
                     while (time.time_ns() - start) / 1e9 / (
                         1 / rate

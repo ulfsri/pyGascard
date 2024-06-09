@@ -4,11 +4,13 @@ Author: Grayson Bellamy
 Date: 2024-01-05
 """
 
+import time
 from abc import ABC, abstractmethod
 from collections.abc import ByteString
 from typing import Optional
 
 import anyio
+import anyio.lowlevel
 from anyserial import SerialStream
 from anyserial.abstract import Parity, StopBits
 
@@ -103,7 +105,7 @@ class SerialDevice(CommDevice):
         super().__init__(timeout)
 
         self.timeout = timeout
-        self.eol = b"\r"
+        self.eol = b"\r\n"
         self.serial_setup = {
             "port": port,
             "exclusive": exclusive,
@@ -126,7 +128,7 @@ class SerialDevice(CommDevice):
             bytearray("U ", "ascii"),
         ]
 
-    async def _read(self, len: int = 1) -> ByteString:
+    async def _read(self, len: int = None) -> ByteString:
         """Reads the serial communication.
 
         Args:
@@ -135,17 +137,21 @@ class SerialDevice(CommDevice):
         Returns:
             ByteString: The serial communication.
         """
+        if len is None:
+            len = self.ser_devc.in_waiting()
+            if len == 0:
+                return None
         if not self.isOpen:
             async with self.ser_devc:
-                with anyio.move_on_after(self.timeout / 1000):
-                    return await self.ser_devc.receive_some(len)
-        else:
-            with anyio.move_on_after(self.timeout / 1000):
                 return await self.ser_devc.receive_some(len)
+        else:
+            return await self.ser_devc.receive_some(len)
         return None
 
     async def _write(self, command: str) -> None:
         """Writes the serial communication.
+
+        Note: Can writing ever actually timeout?
 
         Args:
             command (str): The serial communication.
@@ -168,59 +174,70 @@ class SerialDevice(CommDevice):
         async with self.ser_devc:
             self.isOpen = True
             line = bytearray()
-            c = None
             while True:  # Keep reading until end-of-line character reached, then we know new line is started
-                c = await self._read(1)
-                if c is None:
+                c = None
+                with anyio.move_on_after(
+                    self.timeout / 1000
+                ):  # if keep reading none, then timeout
+                    while c is None:  # Keep reading until a character is read
+                        c = await self._read()
+                        await anyio.lowlevel.checkpoint()
+                if c is None:  # if we reach timeout,
                     break
                 line += c
-                if c == self.eol:
-                    line = bytearray()
+                if line.startswith(
+                    tuple(self.codes_list)
+                ):  # This is a case where we started reading at the beginning of a new line
                     break
                 if (
-                    line in self.codes_list
-                ):  # This is a special case where the device sends a command back
+                    self.eol in line
+                ):  # This is a case where we started reading in the middle of a line
+                    line = bytearray()
                     break
             while True:
-                c = None
-                with anyio.move_on_after(self.timeout / 1000):
-                    c = await self._read(1)
-                    line += c
-                    if c == self.eol:
-                        break
-                if c is None:
+                if c is None:  # if we reach timeout, quit
                     break
+                if self.eol in line:  # We already have a full line
+                    break
+                c = None
+                with anyio.move_on_after(
+                    self.timeout / 1000
+                ):  # if keep reading none, then timeout
+                    while c is None:  # Keep reading until a character is read
+                        c = await self._read()
+                        await anyio.lowlevel.checkpoint()
+                line += c
         self.isOpen = False
         return line.decode("ascii")
 
-    async def _write_readall(self, command: str) -> list:
-        """Write command and read until timeout reached.
+    # async def _write_readall(self, command: str) -> list:
+    #     """Write command and read until timeout reached.
 
-        Args:
-            command (str): The serial communication.
+    #     Args:
+    #         command (str): The serial communication.
 
-        Returns:
-            list: List of lines read from the device.
-        """
-        async with self.ser_devc:
-            self.isOpen = True
-            await self._write(command)
-            line = bytearray()
-            arr_line = []
-            await self._flush()
-            while True:
-                c = None
-                with anyio.move_on_after(self.timeout / 1000):
-                    c = await self._read(1)
-                    if c == self.eol:
-                        arr_line.append(line.decode("ascii"))
-                        line = bytearray()
-                    else:
-                        line += c
-                if c is None:
-                    break
-        self.isOpen = False
-        return arr_line
+    #     Returns:
+    #         list: List of lines read from the device.
+    #     """
+    #     async with self.ser_devc:
+    #         self.isOpen = True
+    #         await self._write(command)
+    #         line = bytearray()
+    #         arr_line = []
+    #         await self._flush()
+    #         while True:
+    #             c = None
+    #             with anyio.move_on_after(self.timeout / 1000):
+    #                 c = await self._read(1)
+    #                 if c == self.eol:
+    #                     arr_line.append(line.decode("ascii"))
+    #                     line = bytearray()
+    #                 else:
+    #                     line += c
+    #             if c is None:
+    #                 break
+    #     self.isOpen = False
+    #     return arr_line
 
     async def _write_readline(self, command: str) -> str:
         """Writes the serial communication and reads the response until end-of-line character reached.
@@ -233,22 +250,41 @@ class SerialDevice(CommDevice):
         """
         async with self.ser_devc:
             self.isOpen = True
-            await self._write(command)
+            self._write(command)
             line = bytearray()
-            c = None
-            while (
-                c != self.eol and c is not None
-            ):  # Keep reading until end-of-line character reached, then we know new line is started
-                c = await self._read(1)
-            while True:
+            while True:  # Keep reading until end-of-line character reached, then we know new line is started
                 c = None
-                with anyio.move_on_after(self.timeout / 1000):
-                    c = await self._read(1)
-                    if c == self.eol:
-                        break
-                    line += c
-                if c is None:
+                with anyio.move_on_after(
+                    self.timeout / 1000
+                ):  # if keep reading none, then timeout
+                    while c is None:  # Keep reading until a character is read
+                        c = await self._read()
+                        await anyio.lowlevel.checkpoint()
+                if c is None:  # if we reach timeout,
                     break
+                line += c
+                if line.startswith(
+                    tuple(self.codes_list)
+                ):  # This is a case where we started reading at the beginning of a new line
+                    break
+                if (
+                    self.eol in line
+                ):  # This is a case where we started reading in the middle of a line
+                    line = bytearray()
+                    break
+            while True:
+                if c is None:  # if we reach timeout, quit
+                    break
+                if self.eol in line:  # We already have a full line
+                    break
+                c = None
+                with anyio.move_on_after(
+                    self.timeout / 1000
+                ):  # if keep reading none, then timeout
+                    while c is None:  # Keep reading until a character is read
+                        c = await self._read()
+                        await anyio.lowlevel.checkpoint()
+                line += c
         self.isOpen = False
         return line.decode("ascii")
 
