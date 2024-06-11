@@ -1,18 +1,10 @@
 """Gascard device class.
 
 Raises:
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
-    ValueError: _description_
+    ValueError: If device is not in the correct mode.
+    ValueError: If device is not found on port.
+    ValueError: If mode is invalid.
+    ValueError: If gas is not accepted.
 
 Returns:
     _type_: _description_
@@ -26,7 +18,8 @@ from typing import Any
 
 import anyio
 from anyio import run
-from comm import SerialDevice
+
+from .comm import SerialDevice
 
 codes = importlib.resources.files("pygascard").joinpath("codes.json")
 with open(codes) as f:

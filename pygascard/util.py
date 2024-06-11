@@ -9,10 +9,10 @@ import re
 from typing import Any
 
 import anyio
-import daq
-import device
 from anyio import create_task_group, run
-from comm import SerialDevice
+
+from . import daq, device
+from .comm import SerialDevice
 
 
 def gas_correction():
