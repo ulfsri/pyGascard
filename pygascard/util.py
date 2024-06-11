@@ -13,6 +13,7 @@ from anyio import create_task_group, run
 
 from pygascard import daq, device
 from pygascard.comm import SerialDevice
+from pygascard.device import Gascard
 
 
 def gas_correction():
@@ -40,7 +41,7 @@ async def update_dict_dev(devices, port) -> dict[str, dict[str, str | float]]:
     return devices
 
 
-async def find_devices() -> dict[str, device.Gascard]:
+async def find_devices() -> dict[str, Gascard]:
     """Finds all connected gascard devices.
 
     Returns:
