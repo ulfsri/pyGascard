@@ -12,14 +12,10 @@ Returns:
 
 import importlib
 import json
-import re
 from abc import ABC
 from typing import Any
 
-import anyio
-from anyio import run
-
-from .comm import SerialDevice
+from pygascard.comm import SerialDevice
 
 codes = importlib.resources.files("pygascard").joinpath("codes.json")
 with open(codes) as f:

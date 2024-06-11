@@ -11,8 +11,8 @@ from typing import Any
 import anyio
 from anyio import create_task_group, run
 
-from . import daq, device
-from .comm import SerialDevice
+from pygascard import daq, device
+from pygascard.comm import SerialDevice
 
 
 def gas_correction():

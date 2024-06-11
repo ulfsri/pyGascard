@@ -4,10 +4,8 @@ Author: Grayson Bellamy
 Date: 2024-01-05
 """
 
-import time
 from abc import ABC, abstractmethod
 from collections.abc import ByteString
-from typing import Optional
 
 import anyio
 import anyio.lowlevel
@@ -27,7 +25,7 @@ class CommDevice(ABC):
         self.timeout = timeout
 
     @abstractmethod
-    async def _read(self, len: int) -> Optional[str]:
+    async def _read(self, len: int) -> str | None:
         """Reads the serial communication.
 
         Args:
@@ -53,7 +51,7 @@ class CommDevice(ABC):
         pass
 
     @abstractmethod
-    async def _readline(self) -> Optional[str]:
+    async def _readline(self) -> str | None:
         """Reads the serial communication until end-of-line character reached.
 
         Returns:
@@ -62,7 +60,7 @@ class CommDevice(ABC):
         pass
 
     @abstractmethod
-    async def _write_readline(self, command: str) -> Optional[str]:
+    async def _write_readline(self, command: str) -> str | None:
         """Writes the serial communication and reads the response until end-of-line character reached.
 
         Args:

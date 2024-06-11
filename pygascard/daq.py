@@ -14,7 +14,7 @@ from typing import Any
 import asyncpg
 from anyio import create_task_group, run
 
-from . import device
+from pygascard import device
 
 warnings.filterwarnings("always")
 
