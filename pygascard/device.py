@@ -18,6 +18,7 @@ Returns:
     _type_: _description_
 """
 
+import importlib
 import json
 import re
 from abc import ABC
@@ -27,7 +28,8 @@ import anyio
 from anyio import run
 from comm import SerialDevice
 
-with open("codes.json") as f:
+codes = importlib.resources.files("pygascard").joinpath("codes.json")
+with open(codes) as f:
     codes = json.load(f)
 values = codes["values"]
 N_labels = values["N"][0]
