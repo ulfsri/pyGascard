@@ -25,7 +25,9 @@ def gas_correction():
     pass
 
 
-async def update_dict_dev(devices, port) -> dict[str, dict[str, str | float]]:
+async def update_dict_dev(
+    devices: dict[str, str | Gascard], port: str
+) -> dict[str, str | Gascard]:
     """Updates the dictionary with the new values.
 
     Args:

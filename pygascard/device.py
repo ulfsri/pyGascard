@@ -10,15 +10,15 @@ Returns:
     _type_: _description_
 """
 
-import importlib
+import importlib.resources
 import json
 from abc import ABC
 from typing import Any
 
 from pygascard.comm import SerialDevice
 
-codes = importlib.resources.files("pygascard").joinpath("codes.json")
-with open(codes) as f:
+codes_path = importlib.resources.files("pygascard").joinpath("codes.json")
+with open(codes_path) as f:
     codes = json.load(f)
 values = codes["values"]
 N_labels = values["N"][0]
@@ -33,7 +33,9 @@ U_labels = values["U"][0]
 class Gascard(ABC):
     """Gascard class."""
 
-    def __init__(self, device: SerialDevice, dev_info: dict, **kwargs: Any) -> None:
+    def __init__(
+        self, device: SerialDevice, dev_info: dict[str, str], **kwargs: Any
+    ) -> None:
         """Initialize the Gascard object.
 
         Args:
@@ -93,7 +95,6 @@ class Gascard(ABC):
         if mode in self._MODES:
             self.current_mode = mode
         else:
-            # print("Error: Invalid Mode")
             raise ValueError("Invalid Mode")
         return mode
 
@@ -107,7 +108,6 @@ class Gascard(ABC):
             await self._device._write(mode)
             self._current_mode = mode
         else:
-            # print("Error: Invalid Mode")
             raise ValueError("Invalid Mode")
         return
 
@@ -123,7 +123,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "N" not in df[0]:
-            # print("Error: Gas Card Not in Normal Mode")
             raise ValueError("Gas Card Not in Normal Mode")
         for index in range(len(df)):
             try:
@@ -144,7 +143,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "N1" not in df[:2]:
-            # print("Error: Gas Card Not in Normal Mode")
             raise ValueError("Gas Card Not in Normal Mode")
         for index in range(len(df)):
             try:
@@ -165,7 +163,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "C1" not in df[:2]:
-            # print("Error: Gas Card Not in Coefficient Mode")
             raise ValueError("Gas Card Not in Coefficient Mode")
         for index in range(len(df)):
             try:
@@ -174,7 +171,7 @@ class Gascard(ABC):
                 pass
         return dict(zip(C1_labels, df))
 
-    async def _get_environmental(self) -> dict:
+    async def _get_environmental(self) -> dict[str, str | float]:
         """Gets environmental parameters.
 
         Note:
@@ -189,7 +186,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "E" not in df[0]:
-            # print("Error: Gas Card Not in Environmental Mode")
             raise ValueError("Gas Card Not in Environmental Mode")
         for index in range(len(df)):
             try:
@@ -210,7 +206,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "O1" not in df[0:2]:
-            # print("Error: Gas Card Not in Output Mode")
             raise ValueError("Gas Card Not in Output Mode")
         for index in range(len(df)):
             try:
@@ -231,7 +226,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "X" not in df[0]:
-            # print("Error: Gas Card Not in Settings Mode")
             raise ValueError("Gas Card Not in Settings Mode")
         for index in range(len(df)):
             try:
@@ -253,7 +247,6 @@ class Gascard(ABC):
         ret = ret.replace("\x00", "")
         df = ret.split()
         if "U" not in df[0]:
-            # print("Error: Gas Card Not in User Interface Mode")
             raise ValueError("Gas Card Not in User Interface Mode")
         for index in range(len(df)):
             try:
@@ -261,11 +254,10 @@ class Gascard(ABC):
             except ValueError:
                 pass
         if df[2] not in acc_gas:
-            # print("Error: Gas Not Accepted")
             raise ValueError("Gas Not Accepted")
         return dict(zip(U_labels, df))
 
-    async def get(self, vals: list[str] = "") -> dict[str, str | float]:
+    async def get(self, vals: list[str] | None = None) -> dict[str, str | float]:
         """General function to receive from device.
 
         Max acquisition rate seems to be 4 Hz
@@ -282,8 +274,6 @@ class Gascard(ABC):
         """
         if not vals:
             return await self._get_val()
-        if not isinstance(vals, list):
-            vals = vals.split()
         modes = []
         output = {}
         for val in vals:
@@ -339,7 +329,7 @@ class Gascard(ABC):
         Note:
             **Device MUST be flowing zero gas BEFORE calling this function.**
         """
-        await self.set({"Zero Gas Corr Factor": ""})
+        await self.set({"Zero_Gas_Corr_Factor": ""})
         return
 
     async def span(self, val: float) -> None:
@@ -354,7 +344,7 @@ class Gascard(ABC):
         Args:
             val (dict[str, float]): Gas concentration as a fraction of full scale (0.5 to 1.2)
         """
-        await self.set({"Span Gas Corr Factor": val})
+        await self.set({"Span_Gas_Corr_Factor": val})
         return
 
     async def time_const(self, val: int) -> None:
@@ -366,5 +356,5 @@ class Gascard(ABC):
         Args:
             val (int): Time constant in seconds (0 to 120)
         """
-        await self.set({"Time Constant": val})
+        await self.set({"Time_Constant": val})
         return

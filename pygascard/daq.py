@@ -9,7 +9,7 @@ import warnings
 from datetime import datetime
 from queue import Queue
 from threading import Thread
-from typing import Any
+from typing import Any, Callable
 
 import asyncpg
 from anyio import create_task_group, run
@@ -28,8 +28,7 @@ class DAQ:
         TODO: Pass dictionary of names and addresses to initialize devices. Same async issue.
 
         """
-        global dev_list
-        dev_list = {}
+        self._dev_list: dict[str, device.Gascard] = {}
 
         """
         for name in devs:
@@ -72,9 +71,9 @@ class DAQ:
             for name in devs:
                 if isinstance(devs[name], str):
                     dev = await device.Gascard.new_device(devs[name])
-                    dev_list.update({name: dev})
+                    self._dev_list.update({name: dev})
                 elif isinstance(devs[name], device.Gascard):
-                    dev_list.update({name: devs[name]})
+                    self._dev_list.update({name: devs[name]})
         return
 
     async def remove_device(self, name: list[str]) -> None:
@@ -84,8 +83,8 @@ class DAQ:
             name (list[str]): The list of names of devices to remove.
         """
         for n in name:
-            await dev_list[n]._device.close()
-            del dev_list[n]
+            await self._dev_list[n]._device.close()
+            del self._dev_list[n]
         return
 
     async def dev_list(self) -> dict[str, device.Gascard]:
@@ -94,11 +93,14 @@ class DAQ:
         Returns:
             dict[str, device.Gascard]: The list of devices and their objects.
         """
-        return dev_list
+        return self._dev_list
 
     async def update_dict_get(
-        self, ret_dict, dev, val
-    ) -> dict[str, dict[str, str | float]]:
+        self,
+        ret_dict: dict[str, dict[str, str | float | datetime]],
+        dev: str,
+        val: list[str],
+    ) -> dict[str, dict[str, str | float | datetime]]:
         """Updates the dictionary with the new values.
 
         Args:
@@ -110,7 +112,7 @@ class DAQ:
             dict: The dictionary of devices with the updated values.
         """
         start = datetime.now()
-        vals = await dev_list[dev].get(val)
+        vals = await self._dev_list[dev].get(val)
         vals.update(
             {
                 "Request Sent": start,
@@ -121,8 +123,8 @@ class DAQ:
         return ret_dict
 
     async def get(
-        self, val: list[str] = "", id: list[str] = ""
-    ) -> dict[str, dict[str | float]]:
+        self, val: list[str] | None = None, id: list[str] | None = None
+    ) -> dict[str, dict[str, str | float | datetime]]:
         """Gets the data from the device.
 
         If id not specified, returns data from all devices.
@@ -140,22 +142,24 @@ class DAQ:
         Returns:
             dict: The dictionary of devices with the data for each value.
         """
-        ret_dict = {}
+        ret_dict: dict[str, dict[str, str | float | datetime]] = {}
         if val and isinstance(val, str):
             val = [val]
         if not id:
             async with create_task_group() as g:
-                for dev in dev_list:
+                for dev in self._dev_list:
                     g.start_soon(self.update_dict_get, ret_dict, dev, val)
-        if id and isinstance(id, str):
-            id = id.split()
-        async with create_task_group() as g:
-            for i in id:
-                g.start_soon(self.update_dict_get, ret_dict, i, val)
+        else:
+            async with create_task_group() as g:
+                for i in id:
+                    g.start_soon(self.update_dict_get, ret_dict, i, val)
         return ret_dict
 
     async def update_dict_set(
-        self, ret_dict, dev, command
+        self,
+        ret_dict: dict[str, dict[str, str | float | datetime]],
+        dev: str,
+        command: list[str],
     ) -> dict[str, dict[str, str | float]]:
         """Updates the dictionary with the new values.
 
@@ -167,10 +171,12 @@ class DAQ:
         Returns:
             dict: The dictionary of devices with the updated values.
         """
-        ret_dict.update({dev: await dev_list[dev].set(command)})
+        ret_dict.update({dev: await self._dev_list[dev].set(command)})
         return ret_dict
 
-    async def set(self, command: dict[str, str | float], id: str = "") -> None:
+    async def set(
+        self, command: dict[str, str | float], id: str | None = None
+    ) -> dict[str, dict[str, str | float]] | None:
         """Sets the data of the device.
 
         Example:
@@ -190,16 +196,15 @@ class DAQ:
             command = command.split()
         if not id:
             async with create_task_group() as g:
-                for dev in dev_list:
+                for dev in self._dev_list:
                     g.start_soon(self.update_dict_set, ret_dict, dev, command)
-        if isinstance(id, str):
-            id = id.split()
-        async with create_task_group() as g:
-            for i in id:
-                g.start_soon(self.update_dict_set, ret_dict, i, command)
+        else:
+            async with create_task_group() as g:
+                for i in id:
+                    g.start_soon(self.update_dict_set, ret_dict, i, command)
         return ret_dict
 
-    async def zero(self, id: list[str] = "") -> None:
+    async def zero(self, id: list[str] | None = None) -> None:
         """Sets the zero reference of the device.
 
         Note:
@@ -213,19 +218,15 @@ class DAQ:
         Args:
             id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
-        ret_dict = {}
         if not id:
-            for dev in dev_list:
-                ret_dict.update(
-                    {dev: await dev_list[i].set({"Zero Gas Corr Factor": ""})}
-                )
-        if isinstance(id, str):
-            id = id.split()
-        for i in id:
-            ret_dict.update({i: await dev_list[i].set({"Zero Gas Corr Factor": ""})})
-        return ret_dict
+            for dev in self._dev_list:
+                await self._dev_list[dev].set({"Zero Gas Corr Factor": ""})
+        else:
+            for i in id:
+                await self._dev_list[i].set({"Zero Gas Corr Factor": ""})
+        return
 
-    async def span(self, val: float, id: list[str] = "") -> None:
+    async def span(self, val: float, id: list[str] | None = None) -> None:
         """Sets the span reference of the device.
 
         Note:
@@ -240,19 +241,15 @@ class DAQ:
             val (float): Gas concentration as a fraction of full scale (0.5 to 1.2)
             id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
-        ret_dict = {}
         if not id:
-            for dev in dev_list:
-                ret_dict.update(
-                    {dev: await dev_list[i].set({"Span Gas Corr Factor": val})}
-                )
-        if isinstance(id, str):
-            id = id.split()
-        for i in id:
-            ret_dict.update({i: await dev_list[i].set({"Span Gas Corr Factor": val})})
-        return ret_dict
+            for dev in self._dev_list:
+                await self._dev_list[dev].set({"Span Gas Corr Factor": val})
+        else:
+            for i in id:
+                await self._dev_list[i].set({"Span Gas Corr Factor": val})
+        return
 
-    async def time_const(self, val: int, id: list[str] = "") -> None:
+    async def time_const(self, val: int, id: list[str] | None = None) -> None:
         """Sets the time constant of the RC filter of the device.
 
         Example:
@@ -262,14 +259,12 @@ class DAQ:
             val (int): Time constant in seconds (0 to 120)
             id (list[str]): The IDs of the devices to read from. If not specified, returns data from all devices.
         """
-        ret_dict = {}
         if not id:
-            for dev in dev_list:
-                await dev_list[dev].set({"Time Constant": val})
-        if isinstance(id, str):
-            id = id.split()
-        for i in id:
-            await dev_list[i].set({"Time Constant": val})
+            for dev in self._dev_list:
+                await self._dev_list[dev].time_const(val)
+        else:
+            for i in id:
+                await self._dev_list[i].time_const(val)
         return
 
 
@@ -278,7 +273,7 @@ class AsyncPG:
 
     def __init__(self, **kwargs):
         """Initializes the AsyncPG object."""
-        self.conn = None
+        self.conn = asyncpg.Connection | None
         self.kwargs = kwargs
 
     async def __aenter__(self):
@@ -288,28 +283,30 @@ class AsyncPG:
 
     async def __aexit__(self, exc_type, exc, tb):
         """Exits the async context manager and closes the connection to the database."""
-        await self.conn.close()
+        if self.conn:
+            await self.conn.close()
         self.conn = None
 
 
 class DAQLogging:
     """Class for logging the data from Gascard devices. Creates and saves file to disk with given acquisition rate. Only used for standalone logging. Use external API for use as plugin."""
 
-    def __init__(self, Daq, qualities, rate, database) -> None:
+    def __init__(
+        self, Daq: DAQ, qualities: list[str], rate: float, database: str
+    ) -> None:
         """Initializes the Logging module.
 
         Note:
             Gascard devices have upper limit rate of 8 Hz.
 
         Example:
-            log = run(daq.DAQLogging.init, Daq, [], 10, 'test.csv', 10)
+            log = run(daq.DAQLogging.init, Daq, [], 10, 'test.csv')
 
         Args:
             Daq (DAQ): The DAQ object to take readings from.
             qualities (list): The list of qualities to log.
             rate (float): The rate at which to log the data in Hz.
             database (str): The name of the database to save the data to.
-            duration (float): The duration to log the data in seconds.
         """
         self.Daq = Daq
         self.qualities = qualities
@@ -317,8 +314,8 @@ class DAQLogging:
         self.database = AsyncPG(
             user="app", password="app", database="app", host="127.0.0.1"
         )
-        self.qin = None
-        self.qout = None
+        self.qin: Queue[str | Callable | list[Callable | Any]] | None = None
+        self.qout: Queue[str | float] | None = None
         return
 
     def _key_func(self, x):
@@ -375,17 +372,12 @@ class DAQLogging:
                     # We could optimize this by using a single insert statement for all devices. We would have to make sure that the order of the values is the same for all devices and it would only work if they all have the same fields. That is, it wouldn't work for the flowmeter in our case because it has RH values
                 )
 
-    async def update_dict_log(
-        self, Daq, qualities
-    ) -> dict[str, dict[str, str | float]]:
+    async def update_dict_log(self, Daq: DAQ, qualities: list[str]) -> None:
         """Updates the dictionary with the new values.
 
         Args:
             Daq (DAQ): The DAQ object to take readings from.
             qualities (list): The list of qualities to log.
-
-        Returns:
-            dict: The dictionary of devices with the updated values.
         """
         self.df = await Daq.get(qualities)
         return
@@ -393,9 +385,9 @@ class DAQLogging:
     async def logging(
         self,
         write_async: bool = False,
-        duration: float = "",
-        rate: float = "",
-    ):
+        duration: float | None = None,
+        rate: float | None = None,
+    ) -> None:
         """Initializes the Logging module. Creates and saves file to disk with given acquisition rate.
 
         Args:
@@ -415,17 +407,17 @@ class DAQLogging:
             for dev in self.df:
                 unique.update(self.df[dev])
             await self.create_table(unique, conn)
-            start = time.time_ns()
+            start = time.perf_counter_ns()
             prev = start
             reps = 0
-            while (time.time_ns() - start) / 1e9 <= duration:
+            while (time.perf_counter_ns() - start) / 1e9 <= duration:
                 # Check if something in queue
                 if not self.qin.empty():
                     comm = self.qin.get()
                     # if stop_logging is in the queue, break out of the while loop
                     if comm == "Stop":
                         break
-                    else:
+                    elif isinstance(comm, list) and isinstance(comm[0], function):
                         df = await comm[0](*comm[1:])
                         self.qout.put(df)
                 # if not, continue logging
@@ -439,10 +431,10 @@ class DAQLogging:
                     #     > 1.003 / rate
                     # ):
                     #     warnings.warn("Warning! Acquisition rate is too high!")
-                    time1 = time.time_ns()
-                    prev = time.time_ns()
+                    time1 = time.perf_counter_ns()
+                    prev = time.perf_counter_ns()
                     if write_async:
-                        nurse_time = time.time_ns()
+                        nurse_time = time.perf_counter_ns()
                         # open_nursery
                         async with create_task_group() as g:
                             # insert_data from the previous iteration
@@ -450,11 +442,11 @@ class DAQLogging:
                             # get
                             g.start_soon(self.update_dict_log, self.Daq, self.qualities)
                     else:
-                        nurse_time = time.time_ns()
+                        nurse_time = time.perf_counter_ns()
                         # Get the data
                         self.df = await self.Daq.get(self.qualities)
                         # Write the data from this iteration
-                    time2 = time.time_ns()
+                    time2 = time.perf_counter_ns()
                     rows = []
                     for dev in self.df:
                         rows.append(
@@ -474,25 +466,30 @@ class DAQLogging:
                             }
                         )
                     # print(f"Process took {(time2 - time1) / 1e6} ms")
-                    time3 = time.time_ns()
+                    time3 = time.perf_counter_ns()
                     if not write_async:
                         await self.insert_data(
                             rows, conn
                         )  # This takes a little bit (~8 ms). I think we should run this in a nursery with the next .get() call. That means that we will have to wait until the next loop to submit the data from the previous iteration.
-                    time4 = time.time_ns()
+                    time4 = time.perf_counter_ns()
                     # print(f"Insert took {(time4 - time3) / 1e6} ms")
                     print(f"Time with nursery is {(time4 - nurse_time) / 1e6} ms")
                     reps += 1
-                    while (time.time_ns() - start) / 1e9 / (
+                    while (time.perf_counter_ns() - start) / 1e9 / (
                         1 / rate
                     ) >= 1.00 * reps + 1:
                         reps += 1
                         warnings.warn("Warning! Process takes too long!")
-            print(f"Total time: {(time.time_ns() - start) / 1e9} s with {reps} reps")
+            print(
+                f"Total time: {(time.perf_counter_ns() - start) / 1e9} s with {reps} reps"
+            )
 
     def start_logging(
-        self, write_async: bool = False, duration: float = "", rate: float = ""
-    ) -> tuple[Queue, Queue]:
+        self,
+        write_async: bool = False,
+        duration: float | None = None,
+        rate: float | None = None,
+    ) -> tuple[Queue[str | Callable | list[Callable | Any]], Queue[str | float]]:
         """Starts the logging process.
 
         Example:
@@ -507,10 +504,8 @@ class DAQLogging:
             tuple[Queue, Queue]: The input and output queues for the logging process.
         """
         # Create the queue
-        qin = Queue()
-        self.qin = qin
-        qout = Queue()
-        self.qout = qout
+        self.qin = Queue()
+        self.qout = Queue()
         backend_options = {"use_uvloop": True}
         # Start the logging process in a thread
         t = Thread(
@@ -520,7 +515,7 @@ class DAQLogging:
         )
         t.start()
         # Return the queue
-        return (qin, qout)
+        return (self.qin, self.qout)
 
     async def stop_logging(self):
         """Stops the logging process.
@@ -550,8 +545,6 @@ class DAQLogging:
             *args: The arguments to pass to the set function.
         """
         self.qin.put([self.Daq.set, *args])
-        while self.qout.empty():
-            pass
         return self.qout.get()
 
     async def get(self, *args):
@@ -564,6 +557,4 @@ class DAQLogging:
             *args: The arguments to pass to the get function.
         """
         self.qin.put([self.Daq.get, *args])
-        while self.qout.empty():
-            pass
         return self.qout.get()
